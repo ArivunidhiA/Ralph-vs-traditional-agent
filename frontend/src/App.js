@@ -1,52 +1,57 @@
-import { useEffect } from "react";
-import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
-
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
-
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
-
-  return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
-  );
-};
+import { useEffect } from 'react';
+import { Header } from './components/Header';
+import { TaskSelector } from './components/TaskSelector';
+import { Arena } from './components/Arena';
+import { MetricsDashboard } from './components/MetricsDashboard';
+import { ControlPanel } from './components/ControlPanel';
+import { Toaster } from './components/ui/sonner';
+import { useArenaStore } from './store/arenaStore';
+import './App.css';
 
 function App() {
+  const { theme } = useArenaStore();
+
+  useEffect(() => {
+    // Apply theme on mount
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
+
   return (
-    <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+    <div className="min-h-screen bg-background" data-testid="app-container">
+      <Header />
+      
+      <main className="pb-32">
+        {/* Hero Section */}
+        <section className="py-12 border-b border-border/40" data-testid="hero-section">
+          <div className="max-w-[1600px] mx-auto px-4 md:px-8 text-center">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4">
+              Traditional vs{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-green-500">
+                Ralph Loop
+              </span>
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Watch two AI coding agents battle side-by-side. See why fresh context 
+              beats accumulated context for complex coding tasks.
+            </p>
+          </div>
+        </section>
+
+        {/* Task Selection */}
+        <TaskSelector />
+
+        {/* Battle Arena */}
+        <Arena />
+
+        {/* Metrics Dashboard */}
+        <MetricsDashboard />
+      </main>
+
+      {/* Floating Control Panel */}
+      <ControlPanel />
+
+      {/* Toast Notifications */}
+      <Toaster position="top-right" />
     </div>
   );
 }
