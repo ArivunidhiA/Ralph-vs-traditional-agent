@@ -8,6 +8,7 @@ export const useArenaStore = create((set, get) => ({
   tasks: [],
   selectedTask: null,
   battle: null,
+  battles: [],
   isRunning: false,
   isPaused: false,
   speed: 'normal',
@@ -47,6 +48,16 @@ export const useArenaStore = create((set, get) => ({
       set({ loading: true, error: null });
       const response = await axios.get(`${API}/tasks`);
       set({ tasks: response.data, loading: false });
+    } catch (error) {
+      set({ error: error.message, loading: false });
+    }
+  },
+
+  fetchBattles: async () => {
+    try {
+      set({ loading: true, error: null });
+      const response = await axios.get(`${API}/battles`);
+      set({ battles: response.data, loading: false });
     } catch (error) {
       set({ error: error.message, loading: false });
     }

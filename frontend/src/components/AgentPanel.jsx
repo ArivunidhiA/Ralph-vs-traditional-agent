@@ -5,6 +5,8 @@ import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 import { ScrollArea } from './ui/scroll-area';
 import { useArenaStore } from '../store/arenaStore';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 const statusIcons = {
   success: CheckCircle2,
@@ -18,8 +20,37 @@ const statusColors = {
   partial: 'text-yellow-500',
 };
 
+// Helper function to detect code language from snippet
+const detectLanguage = (code) => {
+  if (!code) return 'javascript';
+  
+  const codeLower = code.toLowerCase();
+  
+  // Python detection
+  if (codeLower.includes('def ') || codeLower.includes('import pandas') || 
+      codeLower.includes('import numpy') || codeLower.includes('pytest')) {
+    return 'python';
+  }
+  
+  // JavaScript/TypeScript detection
+  if (codeLower.includes('function') || codeLower.includes('const ') || 
+      codeLower.includes('import ') || codeLower.includes('export ') ||
+      codeLower.includes('require(') || codeLower.includes('module.exports')) {
+    return 'javascript';
+  }
+  
+  // JSX/React detection
+  if (codeLower.includes('jsx') || codeLower.includes('react') || 
+      codeLower.includes('usestate') || codeLower.includes('useeffect')) {
+    return 'jsx';
+  }
+  
+  // Default to JavaScript
+  return 'javascript';
+};
+
 export function AgentPanel({ agent, type, maxIterations = 10 }) {
-  const { streamingAgent, streamingContent } = useArenaStore();
+  const { streamingAgent, streamingContent, theme } = useArenaStore();
   const isTraditional = type === 'traditional';
   const iterations = agent?.iterations || [];
   const contextSize = agent?.current_context_size || 0;
@@ -120,11 +151,24 @@ export function AgentPanel({ agent, type, maxIterations = 10 }) {
             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
             <span className="text-xs text-muted-foreground">Generating response...</span>
           </div>
-          <div className="bg-muted/50 rounded-md p-3 max-h-32 overflow-hidden">
-            <pre className="text-xs font-mono whitespace-pre-wrap break-all text-muted-foreground">
-              {streamingContent.slice(-300)}
-              <span className="animate-pulse">▊</span>
-            </pre>
+          <div className="bg-muted/50 rounded-md p-3 max-h-32 overflow-auto">
+            <SyntaxHighlighter
+              language="javascript"
+              style={theme === 'dark' ? vscDarkPlus : vs}
+              customStyle={{
+                margin: 0,
+                padding: 0,
+                background: 'transparent',
+                fontSize: '11px',
+                lineHeight: '1.5',
+                fontFamily: 'JetBrains Mono, monospace'
+              }}
+              PreTag="div"
+              showLineNumbers={false}
+              wrapLines={true}
+            >
+              {streamingContent.slice(-500) + '▊'}
+            </SyntaxHighlighter>
           </div>
         </div>
       )}
@@ -179,10 +223,25 @@ export function AgentPanel({ agent, type, maxIterations = 10 }) {
                     </div>
 
                     {/* Code Snippet */}
-                    <div className="bg-muted/50 rounded-md p-3 mb-3 overflow-hidden">
-                      <pre className="text-xs font-mono whitespace-pre-wrap break-all max-h-32 overflow-hidden">
-                        {iteration.code_snippet}
-                      </pre>
+                    <div className="bg-muted/50 rounded-md p-3 mb-3 overflow-auto max-h-32">
+                      <SyntaxHighlighter
+                        language={detectLanguage(iteration.code_snippet)}
+                        style={theme === 'dark' ? vscDarkPlus : vs}
+                        customStyle={{
+                          margin: 0,
+                          padding: 0,
+                          background: 'transparent',
+                          fontSize: '11px',
+                          lineHeight: '1.5',
+                          fontFamily: 'JetBrains Mono, monospace',
+                          maxHeight: '128px'
+                        }}
+                        PreTag="div"
+                        showLineNumbers={false}
+                        wrapLines={true}
+                      >
+                        {iteration.code_snippet || '// No code generated'}
+                      </SyntaxHighlighter>
                     </div>
 
                     {/* Iteration Footer */}

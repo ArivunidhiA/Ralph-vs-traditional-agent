@@ -1,4 +1,4 @@
-import { Play, Pause, RotateCcw, Gauge, Hash } from 'lucide-react';
+import { Play, Pause, RotateCcw, Gauge, Hash, Download } from 'lucide-react';
 import { Button } from './ui/button';
 import { Slider } from './ui/slider';
 import { 
@@ -16,6 +16,8 @@ import {
 } from './ui/tooltip';
 import { useArenaStore } from '../store/arenaStore';
 import { cn } from '../lib/utils';
+import { exportBattleToPDF } from '../utils/pdfExport';
+import { toast } from 'sonner';
 
 export function ControlPanel() {
   const { 
@@ -38,6 +40,19 @@ export function ControlPanel() {
   const canPause = isRunning && !isPaused;
   const canResume = isRunning && isPaused;
   const canReset = battle && battle.status !== 'idle';
+  const canExport = battle && (
+    (battle.traditional_agent?.iterations?.length > 0) || 
+    (battle.ralph_agent?.iterations?.length > 0)
+  );
+
+  const handleExport = () => {
+    try {
+      exportBattleToPDF(battle, selectedTask);
+      toast.success('Battle report exported successfully');
+    } catch (error) {
+      toast.error('Failed to export battle report: ' + error.message);
+    }
+  };
 
   return (
     <TooltipProvider>
@@ -174,6 +189,27 @@ export function ControlPanel() {
             data-testid="max-iterations-slider"
           />
         </div>
+
+        {/* Export Button */}
+        {canExport && (
+          <>
+            <div className="w-px h-8 bg-border" />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-10 w-10 rounded-full"
+                  onClick={handleExport}
+                  data-testid="export-button"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Export Battle Report as PDF</TooltipContent>
+            </Tooltip>
+          </>
+        )}
 
         {/* Status Badge */}
         {battle && (

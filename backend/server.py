@@ -2,7 +2,7 @@ from fastapi import FastAPI, APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
+import asyncpg
 import os
 import logging
 import json
@@ -13,18 +13,58 @@ from typing import List, Optional, Dict, Any, AsyncGenerator
 import uuid
 from datetime import datetime, timezone
 import asyncio
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+import anthropic
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+# PostgreSQL connection pool
+DATABASE_URL = os.environ.get('DATABASE_URL')  # Supabase connection string
+db_pool: Optional[asyncpg.Pool] = None
+
+# ============== DATABASE INITIALIZATION ==============
+
+async def init_db():
+    """Initialize PostgreSQL connection pool and create tables"""
+    global db_pool
+    if not DATABASE_URL:
+        raise ValueError("DATABASE_URL environment variable is required")
+    
+    db_pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=10)
+    
+    # Create battles table if it doesn't exist
+    async with db_pool.acquire() as conn:
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS battles (
+                id TEXT PRIMARY KEY,
+                task_id TEXT NOT NULL,
+                traditional_agent JSONB NOT NULL,
+                ralph_agent JSONB NOT NULL,
+                status TEXT NOT NULL DEFAULT 'idle',
+                winner TEXT,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+            
+            CREATE INDEX IF NOT EXISTS idx_battles_created_at ON battles(created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_battles_status ON battles(status);
+        """)
+    
+    logger.info("Database initialized successfully")
+
+async def close_db():
+    """Close database connection pool"""
+    global db_pool
+    if db_pool:
+        await db_pool.close()
+        logger.info("Database connection pool closed")
+
+def ensure_db_pool():
+    """Ensure database pool is initialized"""
+    if db_pool is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
 
 # Get API key
-EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')
+ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')
 
 # Create the main app
 app = FastAPI()
@@ -196,55 +236,67 @@ async def call_claude_streaming(
 ) -> AsyncGenerator[str, None]:
     """Call Claude API with streaming response"""
     try:
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=session_id,
-            system_message=system_message
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        client = anthropic.AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
         
-        # Build the full message from context
-        full_message = "\n\n".join([f"{m['role'].upper()}: {m['content']}" for m in messages])
+        # Convert messages to Anthropic format
+        anthropic_messages = []
+        for m in messages:
+            if m['role'] == 'user':
+                anthropic_messages.append({"role": "user", "content": m['content']})
+            elif m['role'] == 'assistant':
+                anthropic_messages.append({"role": "assistant", "content": m['content']})
         
-        user_message = UserMessage(text=full_message)
-        
-        # Get the response (emergentintegrations doesn't support streaming, so we simulate it)
-        response = await chat.send_message(user_message)
-        
-        # Simulate streaming by yielding chunks
-        chunk_size = 50
-        for i in range(0, len(response), chunk_size):
-            chunk = response[i:i+chunk_size]
-            yield chunk
-            await asyncio.sleep(0.02)  # Small delay for streaming effect
+        # Stream the response
+        async with client.messages.stream(
+            model="claude-sonnet-4-5-20250929",
+            max_tokens=4096,
+            system=system_message,
+            messages=anthropic_messages
+        ) as stream:
+            async for text in stream.text_stream:
+                yield text
             
     except Exception as e:
         logger.error(f"Claude API error: {e}")
         raise
 
 async def call_claude(messages: List[Dict], system_message: str, session_id: str) -> Dict:
-    """Call Claude API via emergentintegrations"""
+    """Call Claude API directly via Anthropic SDK"""
     try:
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=session_id,
-            system_message=system_message
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        client = anthropic.AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
         
-        # Build the full message from context
-        full_message = "\n\n".join([f"{m['role'].upper()}: {m['content']}" for m in messages])
+        # Convert messages to Anthropic format
+        anthropic_messages = []
+        for m in messages:
+            if m['role'] == 'user':
+                anthropic_messages.append({"role": "user", "content": m['content']})
+            elif m['role'] == 'assistant':
+                anthropic_messages.append({"role": "assistant", "content": m['content']})
         
-        user_message = UserMessage(text=full_message)
-        response = await chat.send_message(user_message)
+        # Call the API
+        response = await client.messages.create(
+            model="claude-sonnet-4-5-20250929",
+            max_tokens=4096,
+            system=system_message,
+            messages=anthropic_messages
+        )
         
-        # Estimate tokens (rough approximation)
-        input_tokens = len(full_message.split()) * 1.3
-        output_tokens = len(response.split()) * 1.3
+        # Extract text content
+        content = ""
+        if response.content:
+            for block in response.content:
+                if hasattr(block, 'text'):
+                    content += block.text
+                elif isinstance(block, dict) and 'text' in block:
+                    content += block['text']
+                elif block.type == 'text':
+                    content += block.text
         
         return {
-            "content": response,
-            "input_tokens": int(input_tokens),
-            "output_tokens": int(output_tokens),
-            "total_tokens": int(input_tokens + output_tokens)
+            "content": content,
+            "input_tokens": response.usage.input_tokens,
+            "output_tokens": response.usage.output_tokens,
+            "total_tokens": response.usage.input_tokens + response.usage.output_tokens
         }
     except Exception as e:
         logger.error(f"Claude API error: {e}")
@@ -325,7 +377,22 @@ async def create_battle(battle_create: BattleCreate):
     }
     
     battle_doc = battle.model_dump()
-    await db.battles.insert_one(battle_doc)
+    
+    # Insert into PostgreSQL
+    ensure_db_pool()
+    async with db_pool.acquire() as conn:
+        await conn.execute("""
+            INSERT INTO battles (id, task_id, traditional_agent, ralph_agent, status, winner, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+        """, 
+            battle.id,
+            battle.task_id,
+            json.dumps(battle_doc["traditional_agent"]),
+            json.dumps(battle_doc["ralph_agent"]),
+            battle.status,
+            battle.winner,
+            datetime.fromisoformat(battle.created_at.replace('Z', '+00:00'))
+        )
     
     return battle
 
@@ -334,9 +401,28 @@ async def get_battle(battle_id: str):
     if battle_id in active_battles:
         return active_battles[battle_id]["battle"]
     
-    battle = await db.battles.find_one({"id": battle_id}, {"_id": 0})
-    if not battle:
-        raise HTTPException(status_code=404, detail="Battle not found")
+    # Get from PostgreSQL
+    ensure_db_pool()
+    async with db_pool.acquire() as conn:
+        row = await conn.fetchrow("""
+            SELECT id, task_id, traditional_agent, ralph_agent, status, winner, created_at
+            FROM battles
+            WHERE id = $1
+        """, battle_id)
+        
+        if not row:
+            raise HTTPException(status_code=404, detail="Battle not found")
+        
+        battle = {
+            "id": row["id"],
+            "task_id": row["task_id"],
+            "traditional_agent": row["traditional_agent"],
+            "ralph_agent": row["ralph_agent"],
+            "status": row["status"],
+            "winner": row["winner"],
+            "created_at": row["created_at"].isoformat() if row["created_at"] else None
+        }
+    
     return battle
 
 @api_router.get("/battles/{battle_id}/iterate/{agent_type}/stream")
@@ -481,10 +567,18 @@ Notes: {"Task completed successfully" if status == "success" else "Continue impr
                 battle["status"] = "completed" if battle[other_agent]["status"] == "completed" else "running"
             
             # Update in database
-            await db.battles.update_one(
-                {"id": battle_id},
-                {"$set": battle}
-            )
+            async with db_pool.acquire() as conn:
+                await conn.execute("""
+                    UPDATE battles
+                    SET traditional_agent = $1, ralph_agent = $2, status = $3, winner = $4
+                    WHERE id = $5
+                """,
+                    json.dumps(battle["traditional_agent"]),
+                    json.dumps(battle["ralph_agent"]),
+                    battle["status"],
+                    battle.get("winner"),
+                    battle_id
+                )
             
             # Send completion event
             yield f"data: {json.dumps({'type': 'complete', 'iteration': iteration.model_dump(), 'agent_state': agent_state, 'battle_status': battle['status'], 'winner': battle.get('winner')})}\n\n"
@@ -634,10 +728,18 @@ Notes: {"Task completed successfully" if status == "success" else "Continue impr
         battle["status"] = "completed" if battle[other_agent]["status"] == "completed" else "running"
     
     # Update in database
-    await db.battles.update_one(
-        {"id": battle_id},
-        {"$set": battle}
-    )
+    async with db_pool.acquire() as conn:
+        await conn.execute("""
+            UPDATE battles
+            SET traditional_agent = $1, ralph_agent = $2, status = $3, winner = $4
+            WHERE id = $5
+        """,
+            json.dumps(battle["traditional_agent"]),
+            json.dumps(battle["ralph_agent"]),
+            battle["status"],
+            battle.get("winner"),
+            battle_id
+        )
     
     return {
         "iteration": iteration.model_dump(),
@@ -656,10 +758,12 @@ async def start_battle(battle_id: str):
     battle["traditional_agent"]["status"] = "running"
     battle["ralph_agent"]["status"] = "running"
     
-    await db.battles.update_one(
-        {"id": battle_id},
-        {"$set": {"status": "running"}}
-    )
+    async with db_pool.acquire() as conn:
+        await conn.execute("""
+            UPDATE battles
+            SET status = $1
+            WHERE id = $2
+        """, "running", battle_id)
     
     return {"message": "Battle started", "battle_id": battle_id}
 
@@ -678,16 +782,43 @@ async def reset_battle(battle_id: str):
     active_battles[battle_id]["traditional_history"] = []
     active_battles[battle_id]["ralph_state_file"] = ""
     
-    await db.battles.update_one(
-        {"id": battle_id},
-        {"$set": battle}
-    )
+    async with db_pool.acquire() as conn:
+        await conn.execute("""
+            UPDATE battles
+            SET traditional_agent = $1, ralph_agent = $2, status = $3, winner = $4
+            WHERE id = $5
+        """,
+            json.dumps(battle["traditional_agent"]),
+            json.dumps(battle["ralph_agent"]),
+            battle["status"],
+            battle["winner"],
+            battle_id
+        )
     
     return battle
 
 @api_router.get("/battles")
 async def list_battles():
-    battles = await db.battles.find({}, {"_id": 0}).sort("created_at", -1).to_list(50)
+    async with db_pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT id, task_id, traditional_agent, ralph_agent, status, winner, created_at
+            FROM battles
+            ORDER BY created_at DESC
+            LIMIT 50
+        """)
+        
+        battles = []
+        for row in rows:
+            battles.append({
+                "id": row["id"],
+                "task_id": row["task_id"],
+                "traditional_agent": row["traditional_agent"],
+                "ralph_agent": row["ralph_agent"],
+                "status": row["status"],
+                "winner": row["winner"],
+                "created_at": row["created_at"].isoformat() if row["created_at"] else None
+            })
+    
     return battles
 
 # Include router
@@ -701,6 +832,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.on_event("startup")
+async def startup_event():
+    await init_db()
+
 @app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
+async def shutdown_event():
+    await close_db()

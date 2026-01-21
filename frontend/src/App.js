@@ -1,25 +1,18 @@
 import { useEffect } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import { Header } from './components/Header';
 import { TaskSelector } from './components/TaskSelector';
 import { Arena } from './components/Arena';
 import { MetricsDashboard } from './components/MetricsDashboard';
 import { ControlPanel } from './components/ControlPanel';
+import { BattleHistory } from './components/BattleHistory';
 import { Toaster } from './components/ui/sonner';
 import { useArenaStore } from './store/arenaStore';
 import './App.css';
 
-function App() {
-  const { theme } = useArenaStore();
-
-  useEffect(() => {
-    // Apply theme on mount
-    document.documentElement.classList.toggle('dark', theme === 'dark');
-  }, [theme]);
-
+function HomePage() {
   return (
-    <div className="min-h-screen bg-background" data-testid="app-container">
-      <Header />
-      
+    <>
       <main className="pb-32">
         {/* Hero Section */}
         <section className="py-12 border-b border-border/40" data-testid="hero-section">
@@ -49,6 +42,26 @@ function App() {
 
       {/* Floating Control Panel */}
       <ControlPanel />
+    </>
+  );
+}
+
+function App() {
+  const { theme } = useArenaStore();
+
+  useEffect(() => {
+    // Apply theme on mount
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
+
+  return (
+    <div className="min-h-screen bg-background" data-testid="app-container">
+      <Header />
+      
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/history" element={<BattleHistory />} />
+      </Routes>
 
       {/* Toast Notifications */}
       <Toaster position="top-right" />

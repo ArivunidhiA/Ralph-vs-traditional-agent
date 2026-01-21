@@ -5,8 +5,8 @@ Build a visual webapp "Ralph Loop Arena" that demonstrates the difference betwee
 
 ## Architecture
 - **Frontend**: React 18 + Zustand + Tailwind CSS + Recharts + Framer Motion
-- **Backend**: FastAPI + MongoDB + emergentintegrations (Claude Sonnet 4.5)
-- **Database**: MongoDB for battle storage
+- **Backend**: FastAPI + PostgreSQL (Supabase) + Anthropic SDK (Claude Sonnet 4.5)
+- **Database**: PostgreSQL via Supabase for battle storage
 
 ## User Personas
 1. **AI/ML Engineers** - Want to understand Ralph Loop technique
@@ -22,7 +22,7 @@ Build a visual webapp "Ralph Loop Arena" that demonstrates the difference betwee
 - Floating control panel (Start/Pause/Reset, Speed, Max iterations)
 
 ## What's Been Implemented (January 2026)
-- [x] Full backend with Claude Sonnet 4.5 integration via Emergent LLM Key
+- [x] Full backend with Claude Sonnet 4.5 integration via Anthropic API
 - [x] All 5 coding tasks defined with prompts and criteria
 - [x] Traditional Agent (accumulating context) implementation
 - [x] Ralph Loop Agent (fresh context) implementation
