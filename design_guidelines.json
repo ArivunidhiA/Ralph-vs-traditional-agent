@@ -1,0 +1,164 @@
+{
+  "identity": {
+    "name": "E1",
+    "archetype": "The Anti-AI Designer",
+    "vibe": "Cinematic, Technical, High-Performance",
+    "principles": [
+      "Fusion over Imitation",
+      "Emotion First",
+      "Content is King",
+      "Zoom In",
+      "Negative Space",
+      "Contrast"
+    ]
+  },
+  "typography": {
+    "headings": {
+      "font_family": "Manrope, sans-serif",
+      "weights": ["600", "700", "800"],
+      "usage": "Main titles, section headers, task names",
+      "classes": "font-heading tracking-tight"
+    },
+    "body": {
+      "font_family": "IBM Plex Sans, sans-serif",
+      "weights": ["400", "500"],
+      "usage": "General text, descriptions, metrics",
+      "classes": "font-sans leading-relaxed"
+    },
+    "code": {
+      "font_family": "JetBrains Mono, monospace",
+      "weights": ["400"],
+      "usage": "Code snippets, logs, token counts",
+      "classes": "font-mono text-sm"
+    }
+  },
+  "colors": {
+    "theme": {
+      "dark": {
+        "background": "#09090B",
+        "foreground": "#FAFAFA",
+        "card": "#18181B",
+        "card_foreground": "#FAFAFA",
+        "border": "#27272A",
+        "primary": "#FAFAFA",
+        "primary_foreground": "#18181B"
+      },
+      "light": {
+        "background": "#FFFFFF",
+        "foreground": "#09090B",
+        "card": "#FFFFFF",
+        "card_foreground": "#09090B",
+        "border": "#E4E4E7",
+        "primary": "#18181B",
+        "primary_foreground": "#FAFAFA"
+      }
+    },
+    "agents": {
+      "traditional": {
+        "primary": "#3B82F6",
+        "bg_gradient": "from-blue-500/10 to-blue-500/5",
+        "border": "border-blue-500/20",
+        "text": "text-blue-500"
+      },
+      "ralph_loop": {
+        "primary": "#22C55E",
+        "bg_gradient": "from-green-500/10 to-green-500/5",
+        "border": "border-green-500/20",
+        "text": "text-green-500"
+      }
+    },
+    "status": {
+      "success": "#22C55E",
+      "warning": "#EAB308",
+      "error": "#EF4444",
+      "neutral": "#71717A"
+    }
+  },
+  "layout_strategy": {
+    "container": "max-w-[1600px] mx-auto px-4 md:px-8",
+    "spacing": {
+      "section_gap": "gap-8 md:gap-12",
+      "internal_padding": "p-6 md:p-8"
+    },
+    "grid_systems": {
+      "task_selector": "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4",
+      "arena": "grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 relative",
+      "metrics": "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+    }
+  },
+  "components": {
+    "header": {
+      "style": "glassmorphism",
+      "classes": "sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60",
+      "elements": ["Logo (Left)", "Theme Toggle (Right)"]
+    },
+    "task_selector": {
+      "style": "bento_grid",
+      "card_style": "group relative overflow-hidden rounded-xl border border-border/50 bg-card hover:border-primary/50 transition-all duration-300 hover:shadow-lg cursor-pointer",
+      "active_state": "ring-2 ring-primary ring-offset-2 ring-offset-background"
+    },
+    "arena_panel": {
+      "style": "cinematic_card",
+      "classes": "h-[600px] flex flex-col rounded-xl border bg-card/50 backdrop-blur-sm overflow-hidden",
+      "header": "p-4 border-b border-border/50 flex justify-between items-center bg-muted/20",
+      "content": "flex-1 overflow-hidden relative p-0",
+      "footer": "p-4 border-t border-border/50 bg-muted/10"
+    },
+    "context_visualizer": {
+      "type": "progress_bar",
+      "traditional": "h-2 bg-muted overflow-hidden rounded-full [&>div]:bg-blue-500 transition-all",
+      "ralph": "h-2 bg-muted overflow-hidden rounded-full [&>div]:bg-green-500 transition-all"
+    },
+    "control_panel": {
+      "style": "floating_dock",
+      "classes": "fixed bottom-8 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 p-2 rounded-full border border-border/50 bg-background/80 backdrop-blur-xl shadow-2xl"
+    }
+  },
+  "visual_enhancers": {
+    "glassmorphism": "backdrop-blur-xl bg-white/5 dark:bg-black/5 border border-white/10 dark:border-white/5",
+    "glow": "shadow-[0_0_30px_-10px_rgba(var(--color-primary),0.3)]",
+    "gradients": {
+      "subtle_fade": "bg-gradient-to-b from-transparent to-background/80"
+    },
+    "animations": {
+      "fade_in": "animate-in fade-in duration-500",
+      "slide_up": "animate-in slide-in-from-bottom-4 duration-500",
+      "pulse_slow": "animate-pulse duration-[3000ms]"
+    }
+  },
+  "assets": {
+    "icons": "Lucide React (default)",
+    "images": [
+      {
+        "category": "backgrounds",
+        "url": "https://images.pexels.com/photos/7988114/pexels-photo-7988114.jpeg",
+        "description": "Abstract coding background for light mode or subtle overlay"
+      },
+      {
+        "category": "tech_texture",
+        "url": "https://images.pexels.com/photos/5480781/pexels-photo-5480781.jpeg",
+        "description": "Dark server data texture for Ralph Loop agent background (low opacity)"
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Implement the 'Manrope' font for headings and 'IBM Plex Sans' for body by importing them from Google Fonts in index.css.",
+    "Use 'JetBrains Mono' for all code blocks and token metrics.",
+    "Ensure the Theme Toggle works correctly and persists state.",
+    "The 'Arena' must be the focal point. Use the split-screen layout defined in layout_strategy.",
+    "Use 'recharts' for the metrics dashboard. Style the charts to match the theme (minimal axes, custom tooltips).",
+    "For the 'Traditional Agent' panel, simulate 'context accumulation' by showing a growing progress bar and a list of previous context items that gets longer.",
+    "For the 'Ralph Loop Agent' panel, show the context bar resetting or staying low, emphasizing the 'fresh context' concept.",
+    "Use 'framer-motion' for smooth transitions when new iterations appear.",
+    "The 'Control Panel' should be floating at the bottom, inspired by macOS dock or linear.app controls.",
+    "Ensure all interactive elements have data-testid attributes."
+  ],
+  "universal_guidelines": [
+    "Avoid generic 'AI slop' aesthetics. No default centered layouts.",
+    "Use 2-3x more spacing than typical.",
+    "Dark mode should be deep and rich, not just grey.",
+    "Light mode should be crisp and high-contrast.",
+    "Micro-interactions on every button and card hover.",
+    "Use 'sonner' for toast notifications."
+  ]
+}
