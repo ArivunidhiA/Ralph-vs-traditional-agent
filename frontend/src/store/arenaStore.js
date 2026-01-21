@@ -10,17 +10,21 @@ export const useArenaStore = create((set, get) => ({
   battle: null,
   isRunning: false,
   isPaused: false,
-  speed: 'normal', // 'slow', 'normal', 'fast'
+  speed: 'normal',
   maxIterations: 10,
   theme: localStorage.getItem('theme') || 'dark',
   error: null,
   loading: false,
+  
+  // Streaming state
+  streamingAgent: null,
+  streamingContent: '',
 
   // Speed delays in ms
   speedDelays: {
-    slow: 3000,
-    normal: 1500,
-    fast: 500
+    slow: 2000,
+    normal: 1000,
+    fast: 300
   },
 
   // Actions
@@ -32,6 +36,11 @@ export const useArenaStore = create((set, get) => ({
 
   setSpeed: (speed) => set({ speed }),
   setMaxIterations: (max) => set({ maxIterations: max }),
+  setStreamingContent: (agent, content) => set({ streamingAgent: agent, streamingContent: content }),
+  appendStreamingContent: (content) => set((state) => ({ 
+    streamingContent: state.streamingContent + content 
+  })),
+  clearStreaming: () => set({ streamingAgent: null, streamingContent: '' }),
 
   fetchTasks: async () => {
     try {
@@ -103,7 +112,9 @@ export const useArenaStore = create((set, get) => ({
         battle: response.data, 
         isRunning: false, 
         isPaused: false,
-        loading: false 
+        loading: false,
+        streamingAgent: null,
+        streamingContent: ''
       });
     } catch (error) {
       set({ error: error.message, loading: false });
@@ -125,15 +136,15 @@ export const useArenaStore = create((set, get) => ({
       return;
     }
 
-    // Run both agents in parallel
+    // Run both agents in parallel with streaming
     const promises = [];
     
     if (!traditionalDone) {
-      promises.push(get().iterateAgent('traditional'));
+      promises.push(get().iterateAgentWithStream('traditional'));
     }
     
     if (!ralphDone) {
-      promises.push(get().iterateAgent('ralph'));
+      promises.push(get().iterateAgentWithStream('ralph'));
     }
 
     await Promise.all(promises);
@@ -147,6 +158,61 @@ export const useArenaStore = create((set, get) => ({
     }
   },
 
+  iterateAgentWithStream: async (agentType) => {
+    const { battle } = get();
+    if (!battle) return;
+
+    try {
+      // Use SSE for streaming
+      const eventSource = new EventSource(
+        `${API}/battles/${battle.id}/iterate/${agentType}/stream`
+      );
+
+      return new Promise((resolve, reject) => {
+        eventSource.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === 'start') {
+            set({ streamingAgent: agentType, streamingContent: '' });
+          } else if (data.type === 'chunk') {
+            get().appendStreamingContent(data.content);
+          } else if (data.type === 'complete') {
+            // Update battle state
+            set((state) => {
+              const updatedBattle = { ...state.battle };
+              const agentKey = `${agentType}_agent`;
+              updatedBattle[agentKey] = data.agent_state;
+              updatedBattle.status = data.battle_status;
+              updatedBattle.winner = data.winner;
+
+              return { 
+                battle: updatedBattle,
+                streamingAgent: null,
+                streamingContent: ''
+              };
+            });
+            
+            eventSource.close();
+            resolve(data);
+          } else if (data.type === 'error') {
+            eventSource.close();
+            reject(new Error(data.message));
+          }
+        };
+
+        eventSource.onerror = (error) => {
+          eventSource.close();
+          // Fallback to non-streaming endpoint
+          get().iterateAgent(agentType).then(resolve).catch(reject);
+        };
+      });
+    } catch (error) {
+      console.error(`Error iterating ${agentType}:`, error);
+      // Fallback to non-streaming
+      return get().iterateAgent(agentType);
+    }
+  },
+
   iterateAgent: async (agentType) => {
     const { battle } = get();
     if (!battle) return;
@@ -156,7 +222,6 @@ export const useArenaStore = create((set, get) => ({
         `${API}/battles/${battle.id}/iterate/${agentType}`
       );
 
-      // Update battle state
       set((state) => {
         const updatedBattle = { ...state.battle };
         const agentKey = `${agentType}_agent`;
@@ -189,7 +254,10 @@ export const useArenaStore = create((set, get) => ({
           ? ((traditional.success_count / traditional.iterations.length) * 100).toFixed(1)
           : 0,
         totalTokens: traditional.total_tokens,
+        totalTimeMs: traditional.total_time_ms || 0,
         contextSizes: traditional.iterations.map(i => i.context_size),
+        tokensPerIteration: traditional.iterations.map(i => i.tokens_used),
+        timePerIteration: traditional.iterations.map(i => i.time_taken_ms || 0),
         status: traditional.status
       },
       ralph: {
@@ -198,7 +266,10 @@ export const useArenaStore = create((set, get) => ({
           ? ((ralph.success_count / ralph.iterations.length) * 100).toFixed(1)
           : 0,
         totalTokens: ralph.total_tokens,
+        totalTimeMs: ralph.total_time_ms || 0,
         contextSizes: ralph.iterations.map(i => i.context_size),
+        tokensPerIteration: ralph.iterations.map(i => i.tokens_used),
+        timePerIteration: ralph.iterations.map(i => i.time_taken_ms || 0),
         status: ralph.status
       }
     };

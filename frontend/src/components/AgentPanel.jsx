@@ -1,9 +1,10 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, Sparkles, CheckCircle2, XCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Bot, Sparkles, CheckCircle2, XCircle, AlertCircle, Loader2, Clock } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 import { ScrollArea } from './ui/scroll-area';
+import { useArenaStore } from '../store/arenaStore';
 
 const statusIcons = {
   success: CheckCircle2,
@@ -18,18 +19,21 @@ const statusColors = {
 };
 
 export function AgentPanel({ agent, type, maxIterations = 10 }) {
+  const { streamingAgent, streamingContent } = useArenaStore();
   const isTraditional = type === 'traditional';
   const iterations = agent?.iterations || [];
   const contextSize = agent?.current_context_size || 0;
-  const maxContext = isTraditional ? 50000 : 10000; // Traditional grows, Ralph stays small
+  const maxContext = isTraditional ? 50000 : 10000;
   const contextPercent = Math.min((contextSize / maxContext) * 100, 100);
+  const isStreaming = streamingAgent === type;
 
   return (
     <div 
       data-testid={`agent-panel-${type}`}
       className={cn(
-        "h-[600px] flex flex-col rounded-xl border bg-card/50 backdrop-blur-sm overflow-hidden",
-        isTraditional ? "border-blue-500/20" : "border-green-500/20"
+        "h-[600px] flex flex-col rounded-xl border bg-card/50 backdrop-blur-sm overflow-hidden transition-all",
+        isTraditional ? "border-blue-500/20" : "border-green-500/20",
+        isStreaming && (isTraditional ? "glow-blue" : "glow-green")
       )}
     >
       {/* Header */}
@@ -61,6 +65,12 @@ export function AgentPanel({ agent, type, maxIterations = 10 }) {
         </div>
 
         <div className="flex items-center gap-2">
+          {isStreaming && (
+            <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20 animate-pulse">
+              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+              Generating
+            </Badge>
+          )}
           <Badge 
             variant="outline" 
             className={cn(
@@ -70,7 +80,7 @@ export function AgentPanel({ agent, type, maxIterations = 10 }) {
               agent?.status === 'idle' && "bg-muted text-muted-foreground"
             )}
           >
-            {agent?.status === 'running' && (
+            {agent?.status === 'running' && !isStreaming && (
               <Loader2 className="w-3 h-3 mr-1 animate-spin" />
             )}
             {agent?.status || 'idle'}
@@ -103,10 +113,26 @@ export function AgentPanel({ agent, type, maxIterations = 10 }) {
         )}
       </div>
 
+      {/* Streaming Preview */}
+      {isStreaming && streamingContent && (
+        <div className="px-4 py-3 border-b border-border/50 bg-muted/30">
+          <div className="flex items-center gap-2 mb-2">
+            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Generating response...</span>
+          </div>
+          <div className="bg-muted/50 rounded-md p-3 max-h-32 overflow-hidden">
+            <pre className="text-xs font-mono whitespace-pre-wrap break-all text-muted-foreground">
+              {streamingContent.slice(-300)}
+              <span className="animate-pulse">▊</span>
+            </pre>
+          </div>
+        </div>
+      )}
+
       {/* Iterations List */}
       <ScrollArea className="flex-1 p-4">
         <AnimatePresence mode="popLayout">
-          {iterations.length === 0 ? (
+          {iterations.length === 0 && !isStreaming ? (
             <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
               Waiting to start...
             </div>
@@ -121,7 +147,7 @@ export function AgentPanel({ agent, type, maxIterations = 10 }) {
                     initial={{ opacity: 0, y: -20, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.3, delay: idx === 0 ? 0 : 0 }}
+                    transition={{ duration: 0.3 }}
                     data-testid={`iteration-card-${type}-${iteration.iteration_number}`}
                     className={cn(
                       "p-4 rounded-lg border bg-card",
@@ -141,9 +167,15 @@ export function AgentPanel({ agent, type, maxIterations = 10 }) {
                           statusColors[iteration.status]
                         )} />
                       </div>
-                      <span className="text-xs text-muted-foreground font-mono">
-                        {iteration.tokens_used} tokens
-                      </span>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {((iteration.time_taken_ms || 0) / 1000).toFixed(1)}s
+                        </span>
+                        <span className="font-mono">
+                          {iteration.tokens_used} tokens
+                        </span>
+                      </div>
                     </div>
 
                     {/* Code Snippet */}
@@ -178,7 +210,7 @@ export function AgentPanel({ agent, type, maxIterations = 10 }) {
 
       {/* Footer Stats */}
       <div className="p-4 border-t border-border/50 bg-muted/10">
-        <div className="grid grid-cols-3 gap-4 text-center">
+        <div className="grid grid-cols-4 gap-3 text-center">
           <div>
             <p className="text-lg font-bold">{iterations.length}</p>
             <p className="text-xs text-muted-foreground">Iterations</p>
@@ -189,7 +221,11 @@ export function AgentPanel({ agent, type, maxIterations = 10 }) {
           </div>
           <div>
             <p className="text-lg font-bold">{(agent?.total_tokens || 0).toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground">Total Tokens</p>
+            <p className="text-xs text-muted-foreground">Tokens</p>
+          </div>
+          <div>
+            <p className="text-lg font-bold">{((agent?.total_time_ms || 0) / 1000).toFixed(1)}s</p>
+            <p className="text-xs text-muted-foreground">Time</p>
           </div>
         </div>
       </div>
