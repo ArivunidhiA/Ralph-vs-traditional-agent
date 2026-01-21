@@ -27,13 +27,17 @@ Build a visual webapp "Ralph Loop Arena" that demonstrates the difference betwee
 - [x] Traditional Agent (accumulating context) implementation
 - [x] Ralph Loop Agent (fresh context) implementation
 - [x] Battle creation, start, iterate, reset endpoints
+- [x] **SSE Streaming endpoint** for real-time code generation display
 - [x] Frontend with all components (Header, TaskSelector, Arena, AgentPanel, MetricsDashboard, ControlPanel)
-- [x] Zustand store for state management
+- [x] Zustand store with streaming state management
 - [x] Dark/Light theme with persistence
 - [x] Real-time iteration updates with animations
+- [x] **Streaming preview** in agent panels showing code as it generates
 - [x] Context size visualization (progress bars)
 - [x] Winner detection and display
 - [x] Responsive design
+- [x] **New metrics**: Avg Tokens/Iter, Avg Time/Iter, Token Efficiency
+- [x] **Tokens per Iteration chart** showing Traditional grows vs Ralph stays flat
 
 ## Prioritized Backlog
 
@@ -41,9 +45,10 @@ Build a visual webapp "Ralph Loop Arena" that demonstrates the difference betwee
 - [x] Claude API integration
 - [x] Battle flow end-to-end
 - [x] UI visualization
+- [x] Streaming responses for real-time code display
+- [x] Meaningful comparison charts (Tokens per Iteration, Context Growth)
 
 ### P1 (Important)
-- [ ] Add streaming responses for real-time code display
 - [ ] Improve code syntax highlighting in iteration cards
 - [ ] Add battle history page
 
