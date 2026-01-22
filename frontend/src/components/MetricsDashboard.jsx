@@ -179,57 +179,55 @@ export function MetricsDashboard() {
             </CardHeader>
             <CardContent>
               <div className="h-[320px]">
-                {metrics?.tokensData ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={metrics.tokensData} margin={{ top: 10, right: 10, bottom: 10, left: 50 }}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                      <XAxis 
-                        dataKey="name" 
-                        className="text-xs"
-                        tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                      />
-                      <YAxis 
-                        className="text-xs"
-                        tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                        tickFormatter={(value) => value.toLocaleString()}
-                        label={{ value: 'Tokens', angle: -90, position: 'insideLeft', offset: -10, fill: 'hsl(var(--muted-foreground))' }}
-                      />
-                      <Tooltip 
-                        contentStyle={{
-                          backgroundColor: 'hsl(var(--card))',
-                          borderColor: 'hsl(var(--border))',
-                          borderRadius: '8px',
-                        }}
-                        labelStyle={{ color: 'hsl(var(--foreground))' }}
-                        formatter={(value) => [`${value.toLocaleString()} tokens`, '']}
-                      />
-                      <Legend 
-                        wrapperStyle={{ 
-                          paddingTop: '30px',
-                          paddingBottom: '10px',
-                          paddingLeft: '70px'
-                        }}
-                        iconType="rect"
-                        verticalAlign="bottom"
-                        align="center"
-                      />
-                      <Bar 
-                        dataKey="Ralph" 
-                        fill="#22c55e" 
-                        radius={[8, 8, 0, 0]}
-                      />
-                      <Bar 
-                        dataKey="Traditional" 
-                        fill="#3b82f6" 
-                        radius={[8, 8, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-full flex items-center justify-center text-muted-foreground">
-                    Start the battle to see metrics
-                  </div>
-                )}
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart 
+                    data={metrics?.tokensData || [{ name: 'Tokens', Traditional: 0, Ralph: 0 }]} 
+                    margin={{ top: 10, right: 10, bottom: 10, left: 50 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                    <XAxis 
+                      dataKey="name" 
+                      className="text-xs"
+                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    />
+                    <YAxis 
+                      className="text-xs"
+                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                      tickFormatter={(value) => value.toLocaleString()}
+                      label={{ value: 'Tokens', angle: -90, position: 'insideLeft', offset: -10, fill: 'hsl(var(--muted-foreground))' }}
+                      domain={[0, 'auto']}
+                    />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        borderColor: 'hsl(var(--border))',
+                        borderRadius: '8px',
+                      }}
+                      labelStyle={{ color: 'hsl(var(--foreground))' }}
+                      formatter={(value) => [`${value.toLocaleString()} tokens`, '']}
+                    />
+                    <Legend 
+                      wrapperStyle={{ 
+                        paddingTop: '30px',
+                        paddingBottom: '10px',
+                        paddingLeft: '70px'
+                      }}
+                      iconType="rect"
+                      verticalAlign="bottom"
+                      align="center"
+                    />
+                    <Bar 
+                      dataKey="Ralph" 
+                      fill="#22c55e" 
+                      radius={[8, 8, 0, 0]}
+                    />
+                    <Bar 
+                      dataKey="Traditional" 
+                      fill="#3b82f6" 
+                      radius={[8, 8, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </CardContent>
           </Card>
@@ -244,56 +242,54 @@ export function MetricsDashboard() {
             </CardHeader>
             <CardContent>
               <div className="h-[320px]">
-                {metrics?.timeData ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={metrics.timeData} margin={{ top: 10, right: 10, bottom: 10, left: 50 }}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                      <XAxis 
-                        dataKey="name" 
-                        className="text-xs"
-                        tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                      />
-                      <YAxis 
-                        className="text-xs"
-                        tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                        label={{ value: 'Time (seconds)', angle: -90, position: 'insideLeft', offset: -10, fill: 'hsl(var(--muted-foreground))' }}
-                      />
-                      <Tooltip 
-                        contentStyle={{
-                          backgroundColor: 'hsl(var(--card))',
-                          borderColor: 'hsl(var(--border))',
-                          borderRadius: '8px',
-                        }}
-                        labelStyle={{ color: 'hsl(var(--foreground))' }}
-                        formatter={(value) => [`${value}s`, '']}
-                      />
-                      <Legend 
-                        wrapperStyle={{ 
-                          paddingTop: '30px',
-                          paddingBottom: '10px',
-                          paddingLeft: '70px'
-                        }}
-                        iconType="rect"
-                        verticalAlign="bottom"
-                        align="center"
-                      />
-                      <Bar 
-                        dataKey="Ralph" 
-                        fill="#22c55e" 
-                        radius={[8, 8, 0, 0]}
-                      />
-                      <Bar 
-                        dataKey="Traditional" 
-                        fill="#3b82f6" 
-                        radius={[8, 8, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-full flex items-center justify-center text-muted-foreground">
-                    Start the battle to see metrics
-                  </div>
-                )}
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart 
+                    data={metrics?.timeData || [{ name: 'Time (s)', Traditional: 0, Ralph: 0 }]} 
+                    margin={{ top: 10, right: 10, bottom: 10, left: 50 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                    <XAxis 
+                      dataKey="name" 
+                      className="text-xs"
+                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    />
+                    <YAxis 
+                      className="text-xs"
+                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                      label={{ value: 'Time (seconds)', angle: -90, position: 'insideLeft', offset: -10, fill: 'hsl(var(--muted-foreground))' }}
+                      domain={[0, 'auto']}
+                    />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        borderColor: 'hsl(var(--border))',
+                        borderRadius: '8px',
+                      }}
+                      labelStyle={{ color: 'hsl(var(--foreground))' }}
+                      formatter={(value) => [`${Number(value).toFixed(1)}s`, '']}
+                    />
+                    <Legend 
+                      wrapperStyle={{ 
+                        paddingTop: '30px',
+                        paddingBottom: '10px',
+                        paddingLeft: '70px'
+                      }}
+                      iconType="rect"
+                      verticalAlign="bottom"
+                      align="center"
+                    />
+                    <Bar 
+                      dataKey="Ralph" 
+                      fill="#22c55e" 
+                      radius={[8, 8, 0, 0]}
+                    />
+                    <Bar 
+                      dataKey="Traditional" 
+                      fill="#3b82f6" 
+                      radius={[8, 8, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </CardContent>
           </Card>
@@ -308,57 +304,55 @@ export function MetricsDashboard() {
             </CardHeader>
             <CardContent>
               <div className="h-[320px]">
-                {metrics?.contextData ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={metrics.contextData} margin={{ top: 10, right: 10, bottom: 10, left: 50 }}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                      <XAxis 
-                        dataKey="name" 
-                        className="text-xs"
-                        tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                      />
-                      <YAxis 
-                        className="text-xs"
-                        tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                        tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
-                        label={{ value: 'Characters', angle: -90, position: 'insideLeft', offset: -10, fill: 'hsl(var(--muted-foreground))' }}
-                      />
-                      <Tooltip 
-                        contentStyle={{
-                          backgroundColor: 'hsl(var(--card))',
-                          borderColor: 'hsl(var(--border))',
-                          borderRadius: '8px',
-                        }}
-                        labelStyle={{ color: 'hsl(var(--foreground))' }}
-                        formatter={(value) => [`${value.toLocaleString()} chars`, '']}
-                      />
-                      <Legend 
-                        wrapperStyle={{ 
-                          paddingTop: '30px',
-                          paddingBottom: '10px',
-                          paddingLeft: '70px'
-                        }}
-                        iconType="rect"
-                        verticalAlign="bottom"
-                        align="center"
-                      />
-                      <Bar 
-                        dataKey="Ralph" 
-                        fill="#22c55e" 
-                        radius={[8, 8, 0, 0]}
-                      />
-                      <Bar 
-                        dataKey="Traditional" 
-                        fill="#3b82f6" 
-                        radius={[8, 8, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-full flex items-center justify-center text-muted-foreground">
-                    Start the battle to see metrics
-                  </div>
-                )}
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart 
+                    data={metrics?.contextData || [{ name: 'Context Size', Traditional: 0, Ralph: 0 }]} 
+                    margin={{ top: 10, right: 10, bottom: 10, left: 50 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                    <XAxis 
+                      dataKey="name" 
+                      className="text-xs"
+                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    />
+                    <YAxis 
+                      className="text-xs"
+                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                      tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                      label={{ value: 'Characters', angle: -90, position: 'insideLeft', offset: -10, fill: 'hsl(var(--muted-foreground))' }}
+                      domain={[0, 'auto']}
+                    />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        borderColor: 'hsl(var(--border))',
+                        borderRadius: '8px',
+                      }}
+                      labelStyle={{ color: 'hsl(var(--foreground))' }}
+                      formatter={(value) => [`${value.toLocaleString()} chars`, '']}
+                    />
+                    <Legend 
+                      wrapperStyle={{ 
+                        paddingTop: '30px',
+                        paddingBottom: '10px',
+                        paddingLeft: '70px'
+                      }}
+                      iconType="rect"
+                      verticalAlign="bottom"
+                      align="center"
+                    />
+                    <Bar 
+                      dataKey="Ralph" 
+                      fill="#22c55e" 
+                      radius={[8, 8, 0, 0]}
+                    />
+                    <Bar 
+                      dataKey="Traditional" 
+                      fill="#3b82f6" 
+                      radius={[8, 8, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </CardContent>
           </Card>
@@ -373,57 +367,54 @@ export function MetricsDashboard() {
             </CardHeader>
             <CardContent>
               <div className="h-[320px]">
-                {metrics?.successData ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={metrics.successData} margin={{ top: 10, right: 10, bottom: 10, left: 50 }}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                      <XAxis 
-                        dataKey="name" 
-                        className="text-xs"
-                        tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                      />
-                      <YAxis 
-                        className="text-xs"
-                        tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                        domain={[0, 100]}
-                        label={{ value: 'Success Rate (%)', angle: -90, position: 'insideLeft', offset: -10, fill: 'hsl(var(--muted-foreground))' }}
-                      />
-                      <Tooltip 
-                        contentStyle={{
-                          backgroundColor: 'hsl(var(--card))',
-                          borderColor: 'hsl(var(--border))',
-                          borderRadius: '8px',
-                        }}
-                        labelStyle={{ color: 'hsl(var(--foreground))' }}
-                        formatter={(value) => [`${value}%`, '']}
-                      />
-                      <Legend 
-                        wrapperStyle={{ 
-                          paddingTop: '30px',
-                          paddingBottom: '10px',
-                          paddingLeft: '70px'
-                        }}
-                        iconType="rect"
-                        verticalAlign="bottom"
-                        align="center"
-                      />
-                      <Bar 
-                        dataKey="Ralph" 
-                        fill="#22c55e" 
-                        radius={[8, 8, 0, 0]}
-                      />
-                      <Bar 
-                        dataKey="Traditional" 
-                        fill="#3b82f6" 
-                        radius={[8, 8, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-full flex items-center justify-center text-muted-foreground">
-                    Start the battle to see metrics
-                  </div>
-                )}
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart 
+                    data={metrics?.successData || [{ name: 'Success', Traditional: 0, Ralph: 0 }]} 
+                    margin={{ top: 10, right: 10, bottom: 10, left: 50 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                    <XAxis 
+                      dataKey="name" 
+                      className="text-xs"
+                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    />
+                    <YAxis 
+                      className="text-xs"
+                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                      domain={[0, 100]}
+                      label={{ value: 'Success Rate (%)', angle: -90, position: 'insideLeft', offset: -10, fill: 'hsl(var(--muted-foreground))' }}
+                    />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        borderColor: 'hsl(var(--border))',
+                        borderRadius: '8px',
+                      }}
+                      labelStyle={{ color: 'hsl(var(--foreground))' }}
+                      formatter={(value) => [`${value}%`, '']}
+                    />
+                    <Legend 
+                      wrapperStyle={{ 
+                        paddingTop: '30px',
+                        paddingBottom: '10px',
+                        paddingLeft: '70px'
+                      }}
+                      iconType="rect"
+                      verticalAlign="bottom"
+                      align="center"
+                    />
+                    <Bar 
+                      dataKey="Ralph" 
+                      fill="#22c55e" 
+                      radius={[8, 8, 0, 0]}
+                    />
+                    <Bar 
+                      dataKey="Traditional" 
+                      fill="#3b82f6" 
+                      radius={[8, 8, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </CardContent>
           </Card>
