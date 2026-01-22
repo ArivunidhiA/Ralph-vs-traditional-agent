@@ -83,7 +83,8 @@ logger = logging.getLogger(__name__)
 # ============== RATE LIMITING ==============
 
 # Rate limiting configuration (configurable via environment variables)
-RATE_LIMIT_REQUESTS_PER_HOUR = int(os.environ.get('RATE_LIMIT_REQUESTS_PER_HOUR', '50'))
+# Temporarily increased for local testing - will revert after testing
+RATE_LIMIT_REQUESTS_PER_HOUR = int(os.environ.get('RATE_LIMIT_REQUESTS_PER_HOUR', '500'))
 RATE_LIMIT_ENABLED = os.environ.get('RATE_LIMIT_ENABLED', 'true').lower() == 'true'
 
 # In-memory storage for rate limiting: IP -> list of request timestamps
