@@ -169,7 +169,7 @@ export function MetricsDashboard() {
               </p>
             </CardHeader>
             <CardContent>
-              <div className="h-[320px]">
+              <div className="h-[320px]" style={{ userSelect: 'none' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart 
                     data={metrics?.tokensData || [{ name: 'Tokens', Traditional: 0, Ralph: 0 }]} 
@@ -190,12 +190,11 @@ export function MetricsDashboard() {
                     />
                     <Tooltip 
                       contentStyle={{
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        boxShadow: 'none',
+                        backgroundColor: 'hsl(var(--card))',
+                        borderColor: 'hsl(var(--border))',
+                        borderRadius: '8px',
                       }}
                       labelStyle={{ color: 'hsl(var(--foreground))' }}
-                      itemStyle={{ color: 'hsl(var(--foreground))' }}
                       formatter={(value) => [`${value.toLocaleString()} tokens`, '']}
                     />
                     <Legend 
@@ -235,7 +234,7 @@ export function MetricsDashboard() {
               </p>
             </CardHeader>
             <CardContent>
-              <div className="h-[320px]">
+              <div className="h-[320px]" style={{ userSelect: 'none' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart 
                     data={metrics?.timeData || [{ name: 'Time (s)', Traditional: 0, Ralph: 0 }]} 
@@ -255,12 +254,11 @@ export function MetricsDashboard() {
                     />
                     <Tooltip 
                       contentStyle={{
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        boxShadow: 'none',
+                        backgroundColor: 'hsl(var(--card))',
+                        borderColor: 'hsl(var(--border))',
+                        borderRadius: '8px',
                       }}
                       labelStyle={{ color: 'hsl(var(--foreground))' }}
-                      itemStyle={{ color: 'hsl(var(--foreground))' }}
                       formatter={(value) => [`${Number(value).toFixed(1)}s`, '']}
                     />
                     <Legend 
@@ -300,7 +298,7 @@ export function MetricsDashboard() {
               </p>
             </CardHeader>
             <CardContent>
-              <div className="h-[320px]">
+              <div className="h-[320px]" style={{ userSelect: 'none' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart 
                     data={metrics?.contextData || [{ name: 'Context Size', Traditional: 0, Ralph: 0 }]} 
@@ -321,12 +319,11 @@ export function MetricsDashboard() {
                     />
                     <Tooltip 
                       contentStyle={{
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        boxShadow: 'none',
+                        backgroundColor: 'hsl(var(--card))',
+                        borderColor: 'hsl(var(--border))',
+                        borderRadius: '8px',
                       }}
                       labelStyle={{ color: 'hsl(var(--foreground))' }}
-                      itemStyle={{ color: 'hsl(var(--foreground))' }}
                       formatter={(value) => [`${value.toLocaleString()} chars`, '']}
                     />
                     <Legend 

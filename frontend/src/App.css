@@ -28,3 +28,22 @@
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* Hide Recharts selection rectangle */
+.recharts-wrapper .recharts-brush rect,
+.recharts-wrapper .recharts-brush-slide {
+  fill: transparent !important;
+  stroke: none !important;
+}
+
+.recharts-wrapper .recharts-active-shape {
+  display: none !important;
+}
+
+/* Hide text selection on charts */
+.recharts-wrapper {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
