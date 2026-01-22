@@ -190,11 +190,12 @@ export function MetricsDashboard() {
                     />
                     <Tooltip 
                       contentStyle={{
-                        backgroundColor: 'hsl(var(--card))',
-                        borderColor: 'hsl(var(--border))',
-                        borderRadius: '8px',
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        boxShadow: 'none',
                       }}
                       labelStyle={{ color: 'hsl(var(--foreground))' }}
+                      itemStyle={{ color: 'hsl(var(--foreground))' }}
                       formatter={(value) => [`${value.toLocaleString()} tokens`, '']}
                     />
                     <Legend 
@@ -254,11 +255,12 @@ export function MetricsDashboard() {
                     />
                     <Tooltip 
                       contentStyle={{
-                        backgroundColor: 'hsl(var(--card))',
-                        borderColor: 'hsl(var(--border))',
-                        borderRadius: '8px',
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        boxShadow: 'none',
                       }}
                       labelStyle={{ color: 'hsl(var(--foreground))' }}
+                      itemStyle={{ color: 'hsl(var(--foreground))' }}
                       formatter={(value) => [`${Number(value).toFixed(1)}s`, '']}
                     />
                     <Legend 
@@ -319,11 +321,12 @@ export function MetricsDashboard() {
                     />
                     <Tooltip 
                       contentStyle={{
-                        backgroundColor: 'hsl(var(--card))',
-                        borderColor: 'hsl(var(--border))',
-                        borderRadius: '8px',
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        boxShadow: 'none',
                       }}
                       labelStyle={{ color: 'hsl(var(--foreground))' }}
+                      itemStyle={{ color: 'hsl(var(--foreground))' }}
                       formatter={(value) => [`${value.toLocaleString()} chars`, '']}
                     />
                     <Legend 
