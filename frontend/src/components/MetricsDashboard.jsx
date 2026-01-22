@@ -209,14 +209,14 @@ export function MetricsDashboard() {
                       align="center"
                     />
                       <Bar 
-                        dataKey="Ralph" 
-                        fill="#22c55e" 
+                        dataKey="Traditional" 
+                        fill="#3b82f6" 
                         radius={[8, 8, 0, 0]}
                         barSize={30}
                       />
                       <Bar 
-                        dataKey="Traditional" 
-                        fill="#3b82f6" 
+                        dataKey="Ralph" 
+                        fill="#22c55e" 
                         radius={[8, 8, 0, 0]}
                         barSize={30}
                       />
@@ -274,14 +274,14 @@ export function MetricsDashboard() {
                       align="center"
                     />
                       <Bar 
-                        dataKey="Ralph" 
-                        fill="#22c55e" 
+                        dataKey="Traditional" 
+                        fill="#3b82f6" 
                         radius={[8, 8, 0, 0]}
                         barSize={30}
                       />
                       <Bar 
-                        dataKey="Traditional" 
-                        fill="#3b82f6" 
+                        dataKey="Ralph" 
+                        fill="#22c55e" 
                         radius={[8, 8, 0, 0]}
                         barSize={30}
                       />
@@ -340,14 +340,14 @@ export function MetricsDashboard() {
                       align="center"
                     />
                       <Bar 
-                        dataKey="Ralph" 
-                        fill="#22c55e" 
+                        dataKey="Traditional" 
+                        fill="#3b82f6" 
                         radius={[8, 8, 0, 0]}
                         barSize={30}
                       />
                       <Bar 
-                        dataKey="Traditional" 
-                        fill="#3b82f6" 
+                        dataKey="Ralph" 
+                        fill="#22c55e" 
                         radius={[8, 8, 0, 0]}
                         barSize={30}
                       />
