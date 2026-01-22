@@ -7,6 +7,7 @@ import { MetricsDashboard } from './components/MetricsDashboard';
 import { ControlPanel } from './components/ControlPanel';
 import { BattleHistory } from './components/BattleHistory';
 import { Toaster } from './components/ui/sonner';
+import { EtherealShadow } from './components/ui/ethereal-shadow';
 import { useArenaStore } from './store/arenaStore';
 import './App.css';
 
@@ -23,7 +24,7 @@ function HomePage() {
                 Ralph Loop
               </span>
             </h1>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto italic font-normal">
               Watch two AI coding agents battle side-by-side. See why fresh context 
               beats accumulated context for complex coding tasks.
             </p>
@@ -55,16 +56,27 @@ function App() {
   }, [theme]);
 
   return (
-    <div className="min-h-screen bg-background" data-testid="app-container">
-      <Header />
+    <div className="min-h-screen relative" data-testid="app-container" style={{ background: 'transparent' }}>
+      {/* Ethereal Shadow Background - Dark Moving Shadows */}
+      <EtherealShadow
+        color="rgba(30, 30, 50, 0.9)"
+        animation={{ scale: 100, speed: 90 }}
+        noise={{ opacity: 0.05, scale: 1.2 }}
+        sizing="fill"
+      />
       
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/history" element={<BattleHistory />} />
-      </Routes>
+      {/* Content Layer */}
+      <div className="relative z-10" style={{ background: 'transparent' }}>
+        <Header />
+        
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/history" element={<BattleHistory />} />
+        </Routes>
 
-      {/* Toast Notifications */}
-      <Toaster position="top-right" />
+        {/* Toast Notifications */}
+        <Toaster position="top-right" />
+      </div>
     </div>
   );
 }

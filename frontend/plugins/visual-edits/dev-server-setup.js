@@ -506,24 +506,8 @@ function setupDevServer(config) {
       }
     });
 
-    // Catch-all handler for React Router - serve index.html for all routes
-    devServer.app.get('*', (req, res, next) => {
-      // Skip API routes, static files, and webpack dev server routes
-      if (req.path.startsWith('/api/') || 
-          req.path.startsWith('/static/') ||
-          req.path.startsWith('/sockjs-node/') ||
-          req.path.startsWith('/webpack') ||
-          req.path.includes('.')) {
-        return next();
-      }
-      // Serve index.html for all other routes (React Router)
-      const indexPath = path.join(__dirname, '../../public/index.html');
-      if (fs.existsSync(indexPath)) {
-        res.sendFile(indexPath);
-      } else {
-        next();
-      }
-    });
+    // Note: React Router catch-all is handled by historyApiFallback in craco.config.js
+    // We don't need to serve index.html here as it would bypass webpack's script injection
 
     return middlewares;
   };

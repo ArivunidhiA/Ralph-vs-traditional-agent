@@ -49,7 +49,7 @@ export function TaskSelector() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-2xl font-bold">Select a Coding Task</h2>
-            <p className="text-muted-foreground mt-1">
+            <p className="text-muted-foreground mt-1 italic font-normal">
               Choose a task for the AI agents to compete on
             </p>
           </div>

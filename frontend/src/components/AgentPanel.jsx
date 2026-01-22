@@ -49,14 +49,15 @@ const detectLanguage = (code) => {
   return 'javascript';
 };
 
-export function AgentPanel({ agent, type, maxIterations = 10 }) {
-  const { streamingAgent, streamingContent, theme } = useArenaStore();
+export function AgentPanel({ agent, type }) {
+  const { streamingAgents, theme } = useArenaStore();
   const isTraditional = type === 'traditional';
   const iterations = agent?.iterations || [];
   const contextSize = agent?.current_context_size || 0;
   const maxContext = isTraditional ? 50000 : 10000;
   const contextPercent = Math.min((contextSize / maxContext) * 100, 100);
-  const isStreaming = streamingAgent === type;
+  const isStreaming = streamingAgents && streamingAgents[type] !== undefined;
+  const streamingContent = streamingAgents?.[type] || '';
 
   return (
     <div 
@@ -89,7 +90,7 @@ export function AgentPanel({ agent, type, maxIterations = 10 }) {
             <h3 className="font-semibold">
               {isTraditional ? 'Traditional Agent' : 'Ralph Loop Agent'}
             </h3>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground italic font-normal">
               {isTraditional ? 'Accumulating context' : 'Fresh context each time'}
             </p>
           </div>
@@ -174,14 +175,15 @@ export function AgentPanel({ agent, type, maxIterations = 10 }) {
       )}
 
       {/* Iterations List */}
-      <ScrollArea className="flex-1 p-4">
-        <AnimatePresence mode="popLayout">
-          {iterations.length === 0 && !isStreaming ? (
-            <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
-              Waiting to start...
-            </div>
-          ) : (
-            <div className="space-y-3">
+      <ScrollArea className="flex-1">
+        <div className="p-4">
+          <AnimatePresence mode="popLayout">
+            {iterations.length === 0 && !isStreaming ? (
+              <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+                Waiting to start...
+              </div>
+            ) : (
+              <div className="space-y-3">
               {[...iterations].reverse().map((iteration, idx) => {
                 const StatusIcon = statusIcons[iteration.status] || AlertCircle;
                 
@@ -194,36 +196,36 @@ export function AgentPanel({ agent, type, maxIterations = 10 }) {
                     transition={{ duration: 0.3 }}
                     data-testid={`iteration-card-${type}-${iteration.iteration_number}`}
                     className={cn(
-                      "p-4 rounded-lg border bg-card",
+                      "p-4 rounded-lg border bg-card w-full min-w-0 box-border",
                       iteration.status === 'success' && "border-green-500/30",
                       iteration.status === 'failure' && "border-red-500/30",
                       iteration.status === 'partial' && "border-yellow-500/30"
                     )}
                   >
                     {/* Iteration Header */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold">
+                    <div className="flex items-center justify-between mb-3 gap-2 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0 shrink">
+                        <span className="text-sm font-semibold whitespace-nowrap">
                           Iteration {iteration.iteration_number}
                         </span>
                         <StatusIcon className={cn(
-                          "w-4 h-4",
+                          "w-4 h-4 flex-shrink-0",
                           statusColors[iteration.status]
                         )} />
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground flex-shrink-0">
+                        <span className="flex items-center gap-1 whitespace-nowrap">
                           <Clock className="w-3 h-3" />
                           {((iteration.time_taken_ms || 0) / 1000).toFixed(1)}s
                         </span>
-                        <span className="font-mono">
+                        <span className="font-mono whitespace-nowrap">
                           {iteration.tokens_used} tokens
                         </span>
                       </div>
                     </div>
 
                     {/* Code Snippet */}
-                    <div className="bg-muted/50 rounded-md p-3 mb-3 overflow-auto max-h-32">
+                    <div className="bg-muted/50 rounded-md p-3 mb-3 overflow-y-auto overflow-x-hidden max-h-48">
                       <SyntaxHighlighter
                         language={detectLanguage(iteration.code_snippet)}
                         style={theme === 'dark' ? vscDarkPlus : vs}
@@ -234,23 +236,25 @@ export function AgentPanel({ agent, type, maxIterations = 10 }) {
                           fontSize: '11px',
                           lineHeight: '1.5',
                           fontFamily: 'JetBrains Mono, monospace',
-                          maxHeight: '128px'
+                          wordBreak: 'break-word',
+                          overflowWrap: 'break-word'
                         }}
                         PreTag="div"
                         showLineNumbers={false}
                         wrapLines={true}
+                        wrapLongLines={true}
                       >
                         {iteration.code_snippet || '// No code generated'}
                       </SyntaxHighlighter>
                     </div>
 
                     {/* Iteration Footer */}
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>Context: {iteration.context_size.toLocaleString()} chars</span>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground gap-2 min-w-0">
+                      <span className="truncate">Context: {iteration.context_size.toLocaleString()} chars</span>
                       <Badge 
                         variant="outline" 
                         className={cn(
-                          "text-xs",
+                          "text-xs flex-shrink-0",
                           iteration.status === 'success' && "bg-green-500/10 text-green-500 border-green-500/20",
                           iteration.status === 'failure' && "bg-red-500/10 text-red-500 border-red-500/20",
                           iteration.status === 'partial' && "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
@@ -262,9 +266,10 @@ export function AgentPanel({ agent, type, maxIterations = 10 }) {
                   </motion.div>
                 );
               })}
-            </div>
-          )}
-        </AnimatePresence>
+              </div>
+            )}
+          </AnimatePresence>
+        </div>
       </ScrollArea>
 
       {/* Footer Stats */}

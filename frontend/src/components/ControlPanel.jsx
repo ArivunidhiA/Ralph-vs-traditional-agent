@@ -1,6 +1,5 @@
-import { Play, Pause, RotateCcw, Gauge, Hash, Download } from 'lucide-react';
+import { Play, Pause, RotateCcw, Gauge, Download } from 'lucide-react';
 import { Button } from './ui/button';
-import { Slider } from './ui/slider';
 import { 
   Select, 
   SelectContent, 
@@ -26,9 +25,7 @@ export function ControlPanel() {
     battle,
     selectedTask,
     speed, 
-    maxIterations,
     setSpeed,
-    setMaxIterations,
     startBattle,
     pauseBattle,
     resumeBattle,
@@ -160,34 +157,6 @@ export function ControlPanel() {
             </TooltipTrigger>
             <TooltipContent>Animation Speed</TooltipContent>
           </Tooltip>
-        </div>
-
-        {/* Divider */}
-        <div className="w-px h-8 bg-border" />
-
-        {/* Max Iterations */}
-        <div className="flex items-center gap-3">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center gap-2">
-                <Hash className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium w-6 text-center">
-                  {maxIterations}
-                </span>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>Max Iterations</TooltipContent>
-          </Tooltip>
-          <Slider
-            value={[maxIterations]}
-            onValueChange={([value]) => setMaxIterations(value)}
-            min={3}
-            max={15}
-            step={1}
-            className="w-24"
-            disabled={isRunning && !isPaused}
-            data-testid="max-iterations-slider"
-          />
         </div>
 
         {/* Export Button */}

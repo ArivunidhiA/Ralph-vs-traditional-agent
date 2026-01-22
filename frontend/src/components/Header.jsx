@@ -27,7 +27,7 @@ export function Header() {
             <h1 className="text-xl font-bold tracking-tight">
               Ralph Loop Arena
             </h1>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground italic font-normal">
               AI Coding Battle Visualizer
             </p>
           </div>

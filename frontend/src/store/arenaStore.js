@@ -17,9 +17,8 @@ export const useArenaStore = create((set, get) => ({
   error: null,
   loading: false,
   
-  // Streaming state
-  streamingAgent: null,
-  streamingContent: '',
+  // Streaming state - support multiple agents streaming simultaneously
+  streamingAgents: {}, // { 'traditional': content, 'ralph': content }
 
   // Speed delays in ms
   speedDelays: {
@@ -37,11 +36,28 @@ export const useArenaStore = create((set, get) => ({
 
   setSpeed: (speed) => set({ speed }),
   setMaxIterations: (max) => set({ maxIterations: max }),
-  setStreamingContent: (agent, content) => set({ streamingAgent: agent, streamingContent: content }),
-  appendStreamingContent: (content) => set((state) => ({ 
-    streamingContent: state.streamingContent + content 
+  setStreamingContent: (agent, content) => set((state) => ({
+    streamingAgents: { ...state.streamingAgents, [agent]: content }
   })),
-  clearStreaming: () => set({ streamingAgent: null, streamingContent: '' }),
+  appendStreamingContent: (agent, content) => {
+    set((state) => ({
+      streamingAgents: {
+        ...state.streamingAgents,
+        [agent]: (state.streamingAgents[agent] || '') + content
+      }
+    }));
+  },
+  clearStreaming: (agent) => {
+    if (agent) {
+      set((state) => {
+        const newAgents = { ...state.streamingAgents };
+        delete newAgents[agent];
+        return { streamingAgents: newAgents };
+      });
+    } else {
+      set({ streamingAgents: {} });
+    }
+  },
 
   fetchTasks: async () => {
     try {
@@ -124,8 +140,7 @@ export const useArenaStore = create((set, get) => ({
         isRunning: false, 
         isPaused: false,
         loading: false,
-        streamingAgent: null,
-        streamingContent: ''
+        streamingAgents: {}
       });
     } catch (error) {
       set({ error: error.message, loading: false });
@@ -133,39 +148,58 @@ export const useArenaStore = create((set, get) => ({
   },
 
   runBattleLoop: async () => {
-    const { battle, isRunning, isPaused, maxIterations, speed, speedDelays } = get();
+    // Use a small delay to prevent immediate re-execution
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    const { battle, isRunning, isPaused, speed, speedDelays } = get();
     
     if (!battle || !isRunning || isPaused) return;
 
-    const traditionalDone = battle.traditional_agent.status === 'completed' || 
-                           battle.traditional_agent.iterations.length >= maxIterations;
-    const ralphDone = battle.ralph_agent.status === 'completed' || 
-                     battle.ralph_agent.iterations.length >= maxIterations;
+    // Get fresh battle state
+    const currentBattle = get().battle;
+    if (!currentBattle || currentBattle.id !== battle.id) return;
+
+    const traditionalDone = currentBattle.traditional_agent?.status === 'completed';
+    const ralphDone = currentBattle.ralph_agent?.status === 'completed';
 
     if (traditionalDone && ralphDone) {
       set({ isRunning: false });
       return;
     }
 
-    // Run both agents in parallel with streaming
+    // Run both agents in parallel with streaming - they execute simultaneously
     const promises = [];
     
     if (!traditionalDone) {
-      promises.push(get().iterateAgentWithStream('traditional'));
+      promises.push(get().iterateAgentWithStream('traditional').catch(err => {
+        console.error('Traditional agent error:', err);
+        return null;
+      }));
     }
     
     if (!ralphDone) {
-      promises.push(get().iterateAgentWithStream('ralph'));
+      promises.push(get().iterateAgentWithStream('ralph').catch(err => {
+        console.error('Ralph agent error:', err);
+        return null;
+      }));
     }
 
+    // Wait for both agents to complete (they run in parallel)
     await Promise.all(promises);
 
-    // Wait before next iteration
+    // Check if we should continue
+    const finalState = get();
+    if (!finalState.isRunning || finalState.isPaused) return;
+
+    // Wait before next iteration (only if both are still running)
     await new Promise(resolve => setTimeout(resolve, speedDelays[speed]));
 
-    // Continue loop if still running
+    // Continue loop if still running and not paused
     if (get().isRunning && !get().isPaused) {
-      get().runBattleLoop();
+      // Use setTimeout to prevent stack overflow
+      setTimeout(() => {
+        get().runBattleLoop();
+      }, 0);
     }
   },
 
@@ -180,38 +214,67 @@ export const useArenaStore = create((set, get) => ({
       );
 
       return new Promise((resolve, reject) => {
+        let streamingContentBuffer = '';
+        let isComplete = false;
+
         eventSource.onmessage = (event) => {
+          if (isComplete) return; // Prevent multiple completions
+          
           const data = JSON.parse(event.data);
           
           if (data.type === 'start') {
-            set({ streamingAgent: agentType, streamingContent: '' });
+            set((state) => ({
+              streamingAgents: { ...state.streamingAgents, [agentType]: '' }
+            }));
+            streamingContentBuffer = '';
           } else if (data.type === 'chunk') {
-            get().appendStreamingContent(data.content);
+            streamingContentBuffer += data.content;
+            // Update streaming content for this specific agent
+            get().appendStreamingContent(agentType, data.content);
           } else if (data.type === 'complete') {
-            // Update battle state
-            set((state) => {
-              const updatedBattle = { ...state.battle };
-              const agentKey = `${agentType}_agent`;
-              updatedBattle[agentKey] = data.agent_state;
-              updatedBattle.status = data.battle_status;
-              updatedBattle.winner = data.winner;
+            isComplete = true;
+            
+            // Fetch latest battle state to avoid stale updates
+            const currentState = get();
+            const latestBattle = currentState.battle;
+            
+            if (latestBattle && latestBattle.id === battle.id) {
+              // Update battle state atomically
+              set((state) => {
+                // Only update if battle ID matches (prevent stale updates)
+                if (!state.battle || state.battle.id !== battle.id) {
+                  return state;
+                }
+                
+                const updatedBattle = { ...state.battle };
+                const agentKey = `${agentType}_agent`;
+                updatedBattle[agentKey] = data.agent_state;
+                updatedBattle.status = data.battle_status;
+                updatedBattle.winner = data.winner;
 
-              return { 
-                battle: updatedBattle,
-                streamingAgent: null,
-                streamingContent: ''
-              };
-            });
+                // Remove this agent from streaming
+                const newStreamingAgents = { ...state.streamingAgents };
+                delete newStreamingAgents[agentType];
+
+                return { 
+                  battle: updatedBattle,
+                  streamingAgents: newStreamingAgents
+                };
+              });
+            }
             
             eventSource.close();
             resolve(data);
           } else if (data.type === 'error') {
+            isComplete = true;
             eventSource.close();
             reject(new Error(data.message));
           }
         };
 
         eventSource.onerror = (error) => {
+          if (isComplete) return;
+          isComplete = true;
           eventSource.close();
           // Fallback to non-streaming endpoint
           get().iterateAgent(agentType).then(resolve).catch(reject);

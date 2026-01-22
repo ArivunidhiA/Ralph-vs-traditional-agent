@@ -4,7 +4,7 @@ import { Trophy, Zap } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export function Arena() {
-  const { battle, selectedTask, maxIterations } = useArenaStore();
+  const { battle, selectedTask } = useArenaStore();
 
   if (!selectedTask) {
     return (
@@ -64,7 +64,6 @@ export function Arena() {
           <AgentPanel 
             agent={battle?.traditional_agent}
             type="traditional"
-            maxIterations={maxIterations}
           />
 
           {/* VS Divider for Desktop */}
@@ -78,7 +77,6 @@ export function Arena() {
           <AgentPanel 
             agent={battle?.ralph_agent}
             type="ralph"
-            maxIterations={maxIterations}
           />
         </div>
       </div>

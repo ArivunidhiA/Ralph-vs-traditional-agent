@@ -454,6 +454,21 @@ async def iterate_agent_stream(battle_id: str, agent_type: str):
         start_time = time.time()
         full_response = ""
         
+        # Heartbeat infrastructure for Render service keep-alive
+        heartbeat_queue = asyncio.Queue()
+        streaming_active = True
+        heartbeat_task = None
+        
+        # Background task to send heartbeats every 10 minutes (keeps Render service awake)
+        async def heartbeat_worker():
+            while streaming_active:
+                await asyncio.sleep(600)  # 10 minutes (safe margin before 15-min Render sleep)
+                if streaming_active:
+                    await heartbeat_queue.put(": keep-alive\n\n")
+        
+        # Start heartbeat task
+        heartbeat_task = asyncio.create_task(heartbeat_worker())
+        
         # Prepare messages
         if agent_type == "traditional":
             history = battle_data["traditional_history"]
@@ -492,8 +507,16 @@ Write clean, functional code. Be concise and focused."""
         yield f"data: {json.dumps({'type': 'start', 'iteration': current_iteration, 'agent': agent_type})}\n\n"
         
         try:
-            # Stream the response
+            # Stream the response with heartbeat checking
             async for chunk in call_claude_streaming(messages, system_message, session_id):
+                # Check for pending heartbeats (non-blocking)
+                while True:
+                    try:
+                        heartbeat = heartbeat_queue.get_nowait()
+                        yield heartbeat
+                    except asyncio.QueueEmpty:
+                        break
+                
                 full_response += chunk
                 yield f"data: {json.dumps({'type': 'chunk', 'content': chunk})}\n\n"
             
@@ -582,10 +605,20 @@ Notes: {"Task completed successfully" if status == "success" else "Continue impr
             
             # Send completion event
             yield f"data: {json.dumps({'type': 'complete', 'iteration': iteration.model_dump(), 'agent_state': agent_state, 'battle_status': battle['status'], 'winner': battle.get('winner')})}\n\n"
-            
+        
         except Exception as e:
             logger.error(f"Streaming error: {e}")
             yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+        
+        finally:
+            # Cleanup: stop heartbeat task to prevent it from running after stream ends
+            streaming_active = False
+            if heartbeat_task and not heartbeat_task.done():
+                heartbeat_task.cancel()
+                try:
+                    await heartbeat_task
+                except asyncio.CancelledError:
+                    pass
     
     return StreamingResponse(
         generate_stream(),

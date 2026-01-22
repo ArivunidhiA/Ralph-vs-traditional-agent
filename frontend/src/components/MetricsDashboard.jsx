@@ -125,13 +125,13 @@ export function MetricsDashboard() {
                   <p className="text-2xl font-bold text-blue-500">
                     {metrics?.traditional.iterations || 0}
                   </p>
-                  <p className="text-xs text-muted-foreground">Traditional</p>
+                  <p className="text-xs text-muted-foreground italic font-normal">Traditional</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-green-500">
                     {metrics?.ralph.iterations || 0}
                   </p>
-                  <p className="text-xs text-muted-foreground">Ralph</p>
+                  <p className="text-xs text-muted-foreground italic font-normal">Ralph</p>
                 </div>
               </div>
             </CardContent>
@@ -149,13 +149,13 @@ export function MetricsDashboard() {
                   <p className="text-2xl font-bold text-blue-500">
                     {(metrics?.traditional.avgTokens || 0).toLocaleString()}
                   </p>
-                  <p className="text-xs text-muted-foreground">Traditional</p>
+                  <p className="text-xs text-muted-foreground italic font-normal">Traditional</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-green-500">
                     {(metrics?.ralph.avgTokens || 0).toLocaleString()}
                   </p>
-                  <p className="text-xs text-muted-foreground">Ralph</p>
+                  <p className="text-xs text-muted-foreground italic font-normal">Ralph</p>
                 </div>
               </div>
               {metrics?.traditional.avgTokens > metrics?.ralph.avgTokens && (
@@ -178,13 +178,13 @@ export function MetricsDashboard() {
                   <p className="text-2xl font-bold text-blue-500">
                     {((metrics?.traditional.avgTime || 0) / 1000).toFixed(1)}s
                   </p>
-                  <p className="text-xs text-muted-foreground">Traditional</p>
+                  <p className="text-xs text-muted-foreground italic font-normal">Traditional</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-green-500">
                     {((metrics?.ralph.avgTime || 0) / 1000).toFixed(1)}s
                   </p>
-                  <p className="text-xs text-muted-foreground">Ralph</p>
+                  <p className="text-xs text-muted-foreground italic font-normal">Ralph</p>
                 </div>
               </div>
             </CardContent>
@@ -202,16 +202,16 @@ export function MetricsDashboard() {
                   <p className="text-2xl font-bold text-blue-500">
                     {metrics?.traditional.efficiency || 0}
                   </p>
-                  <p className="text-xs text-muted-foreground">Traditional</p>
+                  <p className="text-xs text-muted-foreground italic font-normal">Traditional</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-green-500">
                     {metrics?.ralph.efficiency || 0}
                   </p>
-                  <p className="text-xs text-muted-foreground">Ralph</p>
+                  <p className="text-xs text-muted-foreground italic font-normal">Ralph</p>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-1 italic font-normal">
                 Success per 10k tokens
               </p>
             </CardContent>
@@ -224,15 +224,15 @@ export function MetricsDashboard() {
           <Card data-testid="chart-context-size">
             <CardHeader>
               <CardTitle className="text-lg">Context Size Growth</CardTitle>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground italic font-normal">
                 Traditional context bloats, Ralph stays lean
               </p>
             </CardHeader>
             <CardContent>
-              <div className="h-[300px]">
+              <div className="h-[320px]">
                 {metrics?.contextData?.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={metrics.contextData}>
+                    <AreaChart data={metrics.contextData} margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                       <XAxis 
                         dataKey="iteration" 
@@ -255,7 +255,16 @@ export function MetricsDashboard() {
                         labelStyle={{ color: 'hsl(var(--foreground))' }}
                         formatter={(value) => [`${value.toLocaleString()} chars`, '']}
                       />
-                      <Legend />
+                      <Legend 
+                        wrapperStyle={{ 
+                          paddingTop: '20px',
+                          paddingBottom: '10px',
+                          paddingLeft: '20px'
+                        }}
+                        iconType="line"
+                        verticalAlign="bottom"
+                        align="center"
+                      />
                       <Area 
                         type="monotone" 
                         dataKey="Traditional" 
@@ -287,15 +296,15 @@ export function MetricsDashboard() {
           <Card data-testid="chart-tokens-per-iteration">
             <CardHeader>
               <CardTitle className="text-lg">Tokens per Iteration</CardTitle>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground italic font-normal">
                 Traditional uses more tokens as context grows
               </p>
             </CardHeader>
             <CardContent>
-              <div className="h-[300px]">
+              <div className="h-[320px]">
                 {metrics?.tokensData?.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={metrics.tokensData}>
+                    <LineChart data={metrics.tokensData} margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                       <XAxis 
                         dataKey="iteration" 
@@ -318,7 +327,16 @@ export function MetricsDashboard() {
                         labelStyle={{ color: 'hsl(var(--foreground))' }}
                         formatter={(value) => [`${value.toLocaleString()} tokens`, '']}
                       />
-                      <Legend />
+                      <Legend 
+                        wrapperStyle={{ 
+                          paddingTop: '20px',
+                          paddingBottom: '10px',
+                          paddingLeft: '20px'
+                        }}
+                        iconType="line"
+                        verticalAlign="bottom"
+                        align="center"
+                      />
                       <Line 
                         type="monotone" 
                         dataKey="Traditional" 

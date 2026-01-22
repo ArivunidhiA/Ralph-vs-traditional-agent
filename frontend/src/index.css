@@ -74,14 +74,28 @@
         @apply border-border;
     }
     
+    html, body, #root {
+        background: transparent !important;
+        margin: 0;
+        padding: 0;
+    }
+    
     body {
-        @apply bg-background text-foreground antialiased;
-        font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        @apply text-foreground antialiased;
+        font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: transparent !important;
     }
     
     h1, h2, h3, h4, h5, h6 {
         font-family: 'Manrope', sans-serif;
         @apply tracking-tight font-bold;
+    }
+    
+    /* Subtitle/descriptive text with italic styling */
+    .subtitle, p.text-subtitle {
+        font-family: 'Manrope', sans-serif;
+        font-style: italic;
+        font-weight: 400;
     }
     
     code, pre, .font-mono {
@@ -167,4 +181,19 @@
 
 .code-block pre {
     @apply m-0;
+}
+
+/* Recharts legend spacing fix */
+.recharts-legend-wrapper {
+    padding-top: 20px !important;
+    padding-left: 20px !important;
+}
+
+.recharts-legend-item {
+    margin-right: 24px !important;
+    margin-left: 12px !important;
+}
+
+.recharts-legend-item-text {
+    margin-left: 8px !important;
 }
