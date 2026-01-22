@@ -29,8 +29,8 @@ export function ControlPanel() {
   const canResume = isRunning && isPaused;
   const canReset = battle && battle.status !== 'idle';
   const canExport = battle && (
-    (battle.traditional_agent?.iterations?.length > 0) || 
-    (battle.ralph_agent?.iterations?.length > 0)
+    (battle.traditional_agent?.final_code_snippet) || 
+    (battle.ralph_agent?.final_code_snippet)
   );
 
   const handleExport = () => {

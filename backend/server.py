@@ -183,24 +183,13 @@ class Task(BaseModel):
     expected_iterations: Dict[str, int]
     prompt_template: str
 
-class Iteration(BaseModel):
-    iteration_number: int
-    context_size: int
-    tokens_used: int
-    time_taken_ms: int = 0  # Time taken for this iteration
-    status: str  # 'success', 'failure', 'partial'
-    code_snippet: str
-    message: str
-    timestamp: str
-
 class AgentState(BaseModel):
     agent_type: str  # 'traditional' or 'ralph'
     status: str  # 'idle', 'running', 'completed', 'failed'
-    iterations: List[Iteration] = []
+    final_code_snippet: str = ""
+    final_status: str = ""  # 'success', 'failure', 'partial'
+    final_context_size: int = 0
     total_tokens: int = 0
-    success_count: int = 0
-    failure_count: int = 0
-    current_context_size: int = 0
     total_time_ms: int = 0  # Total time spent
 
 class Battle(BaseModel):
@@ -546,11 +535,10 @@ async def iterate_agent_stream(
     
     agent_key = f"{agent_type}_agent"
     agent_state = battle[agent_key]
-    current_iteration = len(agent_state["iterations"]) + 1
     
     async def generate_stream():
-        start_time = time.time()
-        full_response = ""
+        total_start_time = time.time()
+        attempt_number = 0
         
         # Heartbeat infrastructure for Render service keep-alive
         heartbeat_queue = asyncio.Queue()
@@ -567,142 +555,158 @@ async def iterate_agent_stream(
         # Start heartbeat task
         heartbeat_task = asyncio.create_task(heartbeat_worker())
         
-        # Prepare messages
-        if agent_type == "traditional":
-            history = battle_data["traditional_history"]
-            if current_iteration == 1:
-                messages = [{"role": "user", "content": task.prompt_template}]
-            else:
-                messages = [{"role": "user", "content": task.prompt_template}]
-                for prev in history:
-                    messages.append({"role": "assistant", "content": prev["response"]})
-                    messages.append({"role": "user", "content": f"The previous attempt had issues. Status: {prev['status']}. Please fix and improve."})
-            
-            system_message = """You are a coding assistant. Write clean, functional code. 
+        try:
+            # Retry loop until success
+            while True:
+                attempt_number += 1
+                attempt_start_time = time.time()
+                full_response = ""
+                
+                # Send initial event
+                yield f"data: {json.dumps({'type': 'start', 'attempt': attempt_number, 'agent': agent_type})}\n\n"
+                
+                # Prepare messages
+                if agent_type == "traditional":
+                    history = battle_data["traditional_history"]
+                    if attempt_number == 1:
+                        messages = [{"role": "user", "content": task.prompt_template}]
+                    else:
+                        messages = [{"role": "user", "content": task.prompt_template}]
+                        for prev in history:
+                            messages.append({"role": "assistant", "content": prev["response"]})
+                            messages.append({"role": "user", "content": f"The previous attempt had issues. Status: {prev['status']}. Please fix and improve."})
+                    
+                    system_message = """You are a coding assistant. Write clean, functional code. 
 Your context includes all previous attempts - use them to improve, but be aware the context is growing."""
-        else:
-            state_file = battle_data["ralph_state_file"]
-            if current_iteration == 1:
-                messages = [{"role": "user", "content": task.prompt_template}]
-            else:
-                messages = [{
-                    "role": "user", 
-                    "content": f"""TASK: {task.prompt_template}
+                else:
+                    state_file = battle_data["ralph_state_file"]
+                    if attempt_number == 1:
+                        messages = [{"role": "user", "content": task.prompt_template}]
+                    else:
+                        messages = [{
+                            "role": "user", 
+                            "content": f"""TASK: {task.prompt_template}
 
 CURRENT STATE (from state file):
 {state_file}
 
 Continue from where you left off. Build on the working parts, fix what's broken."""
-                }]
-            
-            system_message = """You are a coding assistant using the Ralph Loop technique. 
+                        }]
+                    
+                    system_message = """You are a coding assistant using the Ralph Loop technique. 
 Each iteration is fresh - no conversation history. Only read state from the provided state file.
 Write clean, functional code. Be concise and focused."""
-        
-        session_id = f"{battle_id}_{agent_type}_{current_iteration}"
-        
-        # Send initial event
-        yield f"data: {json.dumps({'type': 'start', 'iteration': current_iteration, 'agent': agent_type})}\n\n"
-        
-        try:
-            # Stream the response with heartbeat checking
-            async for chunk in call_claude_streaming(messages, system_message, session_id):
-                # Check for pending heartbeats (non-blocking)
-                while True:
-                    try:
-                        heartbeat = heartbeat_queue.get_nowait()
-                        yield heartbeat
-                    except asyncio.QueueEmpty:
-                        break
                 
-                full_response += chunk
-                yield f"data: {json.dumps({'type': 'chunk', 'content': chunk})}\n\n"
-            
-            # Calculate final metrics
-            end_time = time.time()
-            time_taken_ms = int((end_time - start_time) * 1000)
-            
-            status = evaluate_response(full_response, task)
-            code_snippet = extract_code_snippet(full_response)
-            
-            # Calculate context size
-            if agent_type == "traditional":
-                context_size = sum(len(m["content"]) for m in messages) + len(full_response)
-            else:
-                context_size = len(messages[0]["content"]) + len(full_response)
-            
-            # Estimate tokens
-            input_tokens = sum(len(m["content"].split()) for m in messages) * 1.3
-            output_tokens = len(full_response.split()) * 1.3
-            total_tokens = int(input_tokens + output_tokens)
-            
-            # Create iteration record
-            iteration = Iteration(
-                iteration_number=current_iteration,
-                context_size=context_size,
-                tokens_used=total_tokens,
-                time_taken_ms=time_taken_ms,
-                status=status,
-                code_snippet=code_snippet,
-                message=full_response[:500] + "..." if len(full_response) > 500 else full_response,
-                timestamp=datetime.now(timezone.utc).isoformat()
-            )
-            
-            # Update agent state
-            agent_state["iterations"].append(iteration.model_dump())
-            agent_state["total_tokens"] += total_tokens
-            agent_state["total_time_ms"] += time_taken_ms
-            agent_state["current_context_size"] = context_size
-            agent_state["status"] = "running"
-            
-            if status == "success":
-                agent_state["success_count"] += 1
-                agent_state["status"] = "completed"
-            elif status == "failure":
-                agent_state["failure_count"] += 1
-            else:
-                agent_state["success_count"] += 0.5
-            
-            # Update history/state
-            if agent_type == "traditional":
-                battle_data["traditional_history"].append({
-                    "response": full_response,
-                    "status": status
-                })
-            else:
-                battle_data["ralph_state_file"] = f"""Iteration {current_iteration} completed.
+                session_id = f"{battle_id}_{agent_type}_{attempt_number}"
+                
+                # Stream the response with heartbeat checking
+                async for chunk in call_claude_streaming(messages, system_message, session_id):
+                    # Check for pending heartbeats (non-blocking)
+                    while True:
+                        try:
+                            heartbeat = heartbeat_queue.get_nowait()
+                            yield heartbeat
+                        except asyncio.QueueEmpty:
+                            break
+                    
+                    full_response += chunk
+                    yield f"data: {json.dumps({'type': 'chunk', 'content': chunk})}\n\n"
+                
+                # Calculate metrics for this attempt
+                attempt_end_time = time.time()
+                attempt_time_ms = int((attempt_end_time - attempt_start_time) * 1000)
+                
+                status = evaluate_response(full_response, task)
+                code_snippet = extract_code_snippet(full_response)
+                
+                # Calculate context size
+                if agent_type == "traditional":
+                    context_size = sum(len(m["content"]) for m in messages) + len(full_response)
+                else:
+                    context_size = len(messages[0]["content"]) + len(full_response)
+                
+                # Estimate tokens
+                input_tokens = sum(len(m["content"].split()) for m in messages) * 1.3
+                output_tokens = len(full_response.split()) * 1.3
+                attempt_tokens = int(input_tokens + output_tokens)
+                
+                # Update totals
+                agent_state["total_tokens"] += attempt_tokens
+                agent_state["total_time_ms"] += attempt_time_ms
+                
+                # Update history/state
+                if agent_type == "traditional":
+                    battle_data["traditional_history"].append({
+                        "response": full_response,
+                        "status": status
+                    })
+                else:
+                    battle_data["ralph_state_file"] = f"""Attempt {attempt_number} completed.
 Status: {status}
 Working code so far:
 {code_snippet}
 
 Notes: {"Task completed successfully" if status == "success" else "Continue improving the implementation"}"""
-            
-            # Update battle state
-            battle[agent_key] = agent_state
-            
-            # Check for winner
-            if agent_state["status"] == "completed":
-                other_agent = "ralph_agent" if agent_type == "traditional" else "traditional_agent"
-                if battle[other_agent]["status"] != "completed":
-                    battle["winner"] = agent_type
-                battle["status"] = "completed" if battle[other_agent]["status"] == "completed" else "running"
-            
-            # Update in database
-            async with db_pool.acquire() as conn:
-                await conn.execute("""
-                    UPDATE battles
-                    SET traditional_agent = $1, ralph_agent = $2, status = $3, winner = $4
-                    WHERE id = $5
-                """,
-                    json.dumps(battle["traditional_agent"]),
-                    json.dumps(battle["ralph_agent"]),
-                    battle["status"],
-                    battle.get("winner"),
-                    battle_id
-                )
-            
-            # Send completion event
-            yield f"data: {json.dumps({'type': 'complete', 'iteration': iteration.model_dump(), 'agent_state': agent_state, 'battle_status': battle['status'], 'winner': battle.get('winner')})}\n\n"
+                
+                # If success, update final state and break
+                if status == "success":
+                    agent_state["final_code_snippet"] = code_snippet
+                    agent_state["final_status"] = status
+                    agent_state["final_context_size"] = context_size
+                    agent_state["status"] = "completed"
+                    
+                    # Update battle state
+                    battle[agent_key] = agent_state
+                    
+                    # Check for winner
+                    other_agent = "ralph_agent" if agent_type == "traditional" else "traditional_agent"
+                    if battle[other_agent]["status"] != "completed":
+                        battle["winner"] = agent_type
+                    battle["status"] = "completed" if battle[other_agent]["status"] == "completed" else "running"
+                    
+                    # Update in database
+                    async with db_pool.acquire() as conn:
+                        await conn.execute("""
+                            UPDATE battles
+                            SET traditional_agent = $1, ralph_agent = $2, status = $3, winner = $4
+                            WHERE id = $5
+                        """,
+                            json.dumps(battle["traditional_agent"]),
+                            json.dumps(battle["ralph_agent"]),
+                            battle["status"],
+                            battle.get("winner"),
+                            battle_id
+                        )
+                    
+                    # Send completion event
+                    yield f"data: {json.dumps({'type': 'complete', 'agent_state': agent_state, 'battle_status': battle['status'], 'winner': battle.get('winner')})}\n\n"
+                    break
+                else:
+                    # Not success yet, continue retry loop
+                    # Update final state with latest attempt (even if not success)
+                    agent_state["final_code_snippet"] = code_snippet
+                    agent_state["final_status"] = status
+                    agent_state["final_context_size"] = context_size
+                    agent_state["status"] = "running"
+                    
+                    # Update battle state
+                    battle[agent_key] = agent_state
+                    
+                    # Update in database
+                    async with db_pool.acquire() as conn:
+                        await conn.execute("""
+                            UPDATE battles
+                            SET traditional_agent = $1, ralph_agent = $2, status = $3
+                            WHERE id = $4
+                        """,
+                            json.dumps(battle["traditional_agent"]),
+                            json.dumps(battle["ralph_agent"]),
+                            battle["status"],
+                            battle_id
+                        )
+                    
+                    # Send attempt complete event (but not final completion)
+                    yield f"data: {json.dumps({'type': 'attempt_complete', 'attempt': attempt_number, 'status': status, 'agent_state': agent_state})}\n\n"
         
         except Exception as e:
             logger.error(f"Streaming error: {e}")
@@ -763,126 +767,138 @@ async def iterate_agent(
     
     agent_key = f"{agent_type}_agent"
     agent_state = battle[agent_key]
-    current_iteration = len(agent_state["iterations"]) + 1
     
-    start_time = time.time()
+    attempt_number = 0
     
-    # Prepare messages based on agent type
-    if agent_type == "traditional":
-        history = battle_data["traditional_history"]
+    # Retry loop until success
+    while True:
+        attempt_number += 1
+        attempt_start_time = time.time()
         
-        if current_iteration == 1:
-            messages = [{"role": "user", "content": task.prompt_template}]
-        else:
-            messages = [{"role": "user", "content": task.prompt_template}]
-            for prev in history:
-                messages.append({"role": "assistant", "content": prev["response"]})
-                messages.append({"role": "user", "content": f"The previous attempt had issues. Status: {prev['status']}. Please fix and improve."})
-        
-        system_message = """You are a coding assistant. Write clean, functional code. 
+        # Prepare messages based on agent type
+        if agent_type == "traditional":
+            history = battle_data["traditional_history"]
+            
+            if attempt_number == 1:
+                messages = [{"role": "user", "content": task.prompt_template}]
+            else:
+                messages = [{"role": "user", "content": task.prompt_template}]
+                for prev in history:
+                    messages.append({"role": "assistant", "content": prev["response"]})
+                    messages.append({"role": "user", "content": f"The previous attempt had issues. Status: {prev['status']}. Please fix and improve."})
+            
+            system_message = """You are a coding assistant. Write clean, functional code. 
 Your context includes all previous attempts - use them to improve, but be aware the context is growing."""
-        
-    else:
-        state_file = battle_data["ralph_state_file"]
-        
-        if current_iteration == 1:
-            messages = [{"role": "user", "content": task.prompt_template}]
+            
         else:
-            messages = [{
-                "role": "user", 
-                "content": f"""TASK: {task.prompt_template}
+            state_file = battle_data["ralph_state_file"]
+            
+            if attempt_number == 1:
+                messages = [{"role": "user", "content": task.prompt_template}]
+            else:
+                messages = [{
+                    "role": "user", 
+                    "content": f"""TASK: {task.prompt_template}
 
 CURRENT STATE (from state file):
 {state_file}
 
 Continue from where you left off. Build on the working parts, fix what's broken."""
-            }]
-        
-        system_message = """You are a coding assistant using the Ralph Loop technique. 
+                }]
+            
+            system_message = """You are a coding assistant using the Ralph Loop technique. 
 Each iteration is fresh - no conversation history. Only read state from the provided state file.
 Write clean, functional code. Be concise and focused."""
-    
-    # Call Claude
-    session_id = f"{battle_id}_{agent_type}_{current_iteration}"
-    response = await call_claude(messages, system_message, session_id)
-    
-    end_time = time.time()
-    time_taken_ms = int((end_time - start_time) * 1000)
-    
-    # Evaluate response
-    status = evaluate_response(response["content"], task)
-    code_snippet = extract_code_snippet(response["content"])
-    
-    # Calculate context size
-    if agent_type == "traditional":
-        context_size = sum(len(m["content"]) for m in messages) + len(response["content"])
-    else:
-        context_size = len(messages[0]["content"]) + len(response["content"])
-    
-    # Create iteration record
-    iteration = Iteration(
-        iteration_number=current_iteration,
-        context_size=context_size,
-        tokens_used=response["total_tokens"],
-        time_taken_ms=time_taken_ms,
-        status=status,
-        code_snippet=code_snippet,
-        message=response["content"][:500] + "..." if len(response["content"]) > 500 else response["content"],
-        timestamp=datetime.now(timezone.utc).isoformat()
-    )
-    
-    # Update agent state
-    agent_state["iterations"].append(iteration.model_dump())
-    agent_state["total_tokens"] += response["total_tokens"]
-    agent_state["total_time_ms"] += time_taken_ms
-    agent_state["current_context_size"] = context_size
-    agent_state["status"] = "running"
-    
-    if status == "success":
-        agent_state["success_count"] += 1
-        agent_state["status"] = "completed"
-    elif status == "failure":
-        agent_state["failure_count"] += 1
-    else:
-        agent_state["success_count"] += 0.5
-    
-    # Update history/state
-    if agent_type == "traditional":
-        battle_data["traditional_history"].append({
-            "response": response["content"],
-            "status": status
-        })
-    else:
-        battle_data["ralph_state_file"] = f"""Iteration {current_iteration} completed.
+        
+        # Call Claude
+        session_id = f"{battle_id}_{agent_type}_{attempt_number}"
+        claude_response = await call_claude(messages, system_message, session_id)
+        
+        attempt_end_time = time.time()
+        attempt_time_ms = int((attempt_end_time - attempt_start_time) * 1000)
+        
+        # Evaluate response
+        status = evaluate_response(claude_response["content"], task)
+        code_snippet = extract_code_snippet(claude_response["content"])
+        
+        # Calculate context size
+        if agent_type == "traditional":
+            context_size = sum(len(m["content"]) for m in messages) + len(claude_response["content"])
+        else:
+            context_size = len(messages[0]["content"]) + len(claude_response["content"])
+        
+        # Update totals
+        agent_state["total_tokens"] += claude_response["total_tokens"]
+        agent_state["total_time_ms"] += attempt_time_ms
+        
+        # Update history/state
+        if agent_type == "traditional":
+            battle_data["traditional_history"].append({
+                "response": claude_response["content"],
+                "status": status
+            })
+        else:
+            battle_data["ralph_state_file"] = f"""Attempt {attempt_number} completed.
 Status: {status}
 Working code so far:
 {code_snippet}
 
 Notes: {"Task completed successfully" if status == "success" else "Continue improving the implementation"}"""
-    
-    # Update battle state
-    battle[agent_key] = agent_state
-    
-    # Check for winner
-    if agent_state["status"] == "completed":
-        other_agent = "ralph_agent" if agent_type == "traditional" else "traditional_agent"
-        if battle[other_agent]["status"] != "completed":
-            battle["winner"] = agent_type
-        battle["status"] = "completed" if battle[other_agent]["status"] == "completed" else "running"
-    
-    # Update in database
-    async with db_pool.acquire() as conn:
-        await conn.execute("""
-            UPDATE battles
-            SET traditional_agent = $1, ralph_agent = $2, status = $3, winner = $4
-            WHERE id = $5
-        """,
-            json.dumps(battle["traditional_agent"]),
-            json.dumps(battle["ralph_agent"]),
-            battle["status"],
-            battle.get("winner"),
-            battle_id
-        )
+        
+        # If success, update final state and break
+        if status == "success":
+            agent_state["final_code_snippet"] = code_snippet
+            agent_state["final_status"] = status
+            agent_state["final_context_size"] = context_size
+            agent_state["status"] = "completed"
+            
+            # Update battle state
+            battle[agent_key] = agent_state
+            
+            # Check for winner
+            other_agent = "ralph_agent" if agent_type == "traditional" else "traditional_agent"
+            if battle[other_agent]["status"] != "completed":
+                battle["winner"] = agent_type
+            battle["status"] = "completed" if battle[other_agent]["status"] == "completed" else "running"
+            
+            # Update in database
+            async with db_pool.acquire() as conn:
+                await conn.execute("""
+                    UPDATE battles
+                    SET traditional_agent = $1, ralph_agent = $2, status = $3, winner = $4
+                    WHERE id = $5
+                """,
+                    json.dumps(battle["traditional_agent"]),
+                    json.dumps(battle["ralph_agent"]),
+                    battle["status"],
+                    battle.get("winner"),
+                    battle_id
+                )
+            
+            break
+        else:
+            # Not success yet, continue retry loop
+            # Update final state with latest attempt (even if not success)
+            agent_state["final_code_snippet"] = code_snippet
+            agent_state["final_status"] = status
+            agent_state["final_context_size"] = context_size
+            agent_state["status"] = "running"
+            
+            # Update battle state
+            battle[agent_key] = agent_state
+            
+            # Update in database
+            async with db_pool.acquire() as conn:
+                await conn.execute("""
+                    UPDATE battles
+                    SET traditional_agent = $1, ralph_agent = $2, status = $3
+                    WHERE id = $4
+                """,
+                    json.dumps(battle["traditional_agent"]),
+                    json.dumps(battle["ralph_agent"]),
+                    battle["status"],
+                    battle_id
+                )
     
     # Add rate limit headers to response
     response.headers["X-RateLimit-Limit"] = str(rate_limit_info.get("X-RateLimit-Limit", RATE_LIMIT_REQUESTS_PER_HOUR))
@@ -890,7 +906,6 @@ Notes: {"Task completed successfully" if status == "success" else "Continue impr
     response.headers["X-RateLimit-Reset"] = str(rate_limit_info.get("X-RateLimit-Reset", int(time.time()) + 3600))
     
     return {
-        "iteration": iteration.model_dump(),
         "agent_state": agent_state,
         "battle_status": battle["status"],
         "winner": battle.get("winner")

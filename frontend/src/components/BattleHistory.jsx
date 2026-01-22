@@ -208,19 +208,19 @@ export function BattleHistory() {
                             <div>
                               <p className="text-muted-foreground text-xs">Traditional</p>
                               <p className="font-semibold">
-                                {traditional.iterations?.length || 0} iterations
+                                {(traditional.total_tokens || 0).toLocaleString()} tokens
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                {(traditional.total_tokens || 0).toLocaleString()} tokens
+                                {traditional.final_status || 'pending'}
                               </p>
                             </div>
                             <div>
                               <p className="text-muted-foreground text-xs">Ralph Loop</p>
                               <p className="font-semibold">
-                                {ralph.iterations?.length || 0} iterations
+                                {(ralph.total_tokens || 0).toLocaleString()} tokens
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                {(ralph.total_tokens || 0).toLocaleString()} tokens
+                                {ralph.final_status || 'pending'}
                               </p>
                             </div>
                           </div>

@@ -58,41 +58,17 @@ export function exportBattleToPDF(battle, task) {
   const traditional = battle.traditional_agent || {};
   const ralph = battle.ralph_agent || {};
   
-  const traditionalIterations = traditional.iterations || [];
-  const ralphIterations = ralph.iterations || [];
-  
-  const traditionalSuccessRate = traditionalIterations.length > 0
-    ? ((traditional.success_count || 0) / traditionalIterations.length * 100).toFixed(1)
-    : '0';
-  
-  const ralphSuccessRate = ralphIterations.length > 0
-    ? ((ralph.success_count || 0) / ralphIterations.length * 100).toFixed(1)
-    : '0';
+  const traditionalSuccess = traditional.final_status === 'success' ? '100%' : '0%';
+  const ralphSuccess = ralph.final_status === 'success' ? '100%' : '0%';
 
   autoTable(doc, {
     startY: yPos,
     head: [['Metric', 'Traditional Agent', 'Ralph Loop Agent']],
     body: [
-      ['Iterations', traditionalIterations.length.toString(), ralphIterations.length.toString()],
       ['Total Tokens', (traditional.total_tokens || 0).toLocaleString(), (ralph.total_tokens || 0).toLocaleString()],
       ['Total Time', `${((traditional.total_time_ms || 0) / 1000).toFixed(1)}s`, `${((ralph.total_time_ms || 0) / 1000).toFixed(1)}s`],
-      ['Success Rate', `${traditionalSuccessRate}%`, `${ralphSuccessRate}%`],
-      ['Avg Tokens/Iter', 
-        traditionalIterations.length > 0 
-          ? Math.round((traditional.total_tokens || 0) / traditionalIterations.length).toString()
-          : '0',
-        ralphIterations.length > 0
-          ? Math.round((ralph.total_tokens || 0) / ralphIterations.length).toString()
-          : '0'
-      ],
-      ['Avg Time/Iter',
-        traditionalIterations.length > 0
-          ? `${((traditional.total_time_ms || 0) / traditionalIterations.length / 1000).toFixed(1)}s`
-          : '0s',
-        ralphIterations.length > 0
-          ? `${((ralph.total_time_ms || 0) / ralphIterations.length / 1000).toFixed(1)}s`
-          : '0s'
-      ],
+      ['Success Rate', traditionalSuccess, ralphSuccess],
+      ['Final Status', traditional.final_status || 'pending', ralph.final_status || 'pending'],
     ],
     theme: 'striped',
     headStyles: { fillColor: [59, 130, 246], textColor: 255, fontStyle: 'bold' },
@@ -102,8 +78,8 @@ export function exportBattleToPDF(battle, task) {
 
   yPos = doc.lastAutoTable.finalY + 20;
 
-  // Iteration Details - Traditional Agent
-  if (traditionalIterations.length > 0) {
+  // Final Code - Traditional Agent
+  if (traditional.final_code_snippet) {
     if (yPos > pageHeight - 60) {
       doc.addPage();
       yPos = 20;
@@ -111,111 +87,72 @@ export function exportBattleToPDF(battle, task) {
     
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('Traditional Agent - Iterations', 20, yPos);
+    doc.text('Traditional Agent - Final Code', 20, yPos);
     yPos += 10;
 
-    const traditionalTableData = traditionalIterations.map((iter, idx) => [
-      (idx + 1).toString(),
-      iter.status || 'unknown',
-      iter.tokens_used?.toString() || '0',
-      `${((iter.time_taken_ms || 0) / 1000).toFixed(1)}s`,
-      (iter.context_size || 0).toLocaleString(),
-    ]);
-
-    autoTable(doc, {
-      startY: yPos,
-      head: [['#', 'Status', 'Tokens', 'Time', 'Context Size']],
-      body: traditionalTableData,
-      theme: 'striped',
-      headStyles: { fillColor: [59, 130, 246], textColor: 255, fontStyle: 'bold' },
-      styles: { fontSize: 8 },
-      margin: { left: 20, right: 20 },
-    });
-
-    yPos = doc.lastAutoTable.finalY + 20;
-
-    // Code snippets for Traditional Agent (first 3 iterations)
-    if (yPos > pageHeight - 60) {
-      doc.addPage();
-      yPos = 20;
-    }
-
-    doc.setFontSize(12);
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text('Traditional Agent - Code Snippets', 20, yPos);
-    yPos += 12;
+    doc.text(`Status: ${traditional.final_status || 'pending'}`, 20, yPos);
+    yPos += 8;
 
-    traditionalIterations.slice(0, 3).forEach((iter, idx) => {
-      // Check if we need a new page before starting iteration
-      if (yPos > pageHeight - 80) {
+    // Code block with better formatting
+    const codeSnippet = traditional.final_code_snippet || '// No code generated';
+    const codeWidth = pageWidth - 40;
+    const codeLines = doc.splitTextToSize(codeSnippet, codeWidth);
+    
+    // Write code with monospace font
+    doc.setFont('courier', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(0, 0, 0);
+    
+    const lineHeight = 4.5;
+    const padding = 3;
+    
+    let lineIdx = 0;
+    while (lineIdx < codeLines.length) {
+      // Calculate how many lines fit on current page
+      const remainingSpace = pageHeight - yPos - 15;
+      const linesForThisPage = Math.min(
+        Math.floor(remainingSpace / lineHeight),
+        codeLines.length - lineIdx
+      );
+      
+      if (linesForThisPage <= 0) {
+        doc.addPage();
+        yPos = 20;
+        continue;
+      }
+      
+      const blockStartY = yPos - padding;
+      const blockHeight = linesForThisPage * lineHeight + padding * 2;
+      
+      // Draw background and border first
+      doc.setFillColor(245, 245, 245);
+      doc.roundedRect(20, blockStartY, codeWidth, blockHeight, 2, 2, 'F');
+      doc.setDrawColor(200, 200, 200);
+      doc.roundedRect(20, blockStartY, codeWidth, blockHeight, 2, 2, 'S');
+      
+      // Then write the text
+      for (let i = 0; i < linesForThisPage; i++) {
+        doc.text(codeLines[lineIdx], 25, yPos);
+        yPos += lineHeight;
+        lineIdx++;
+      }
+      
+      // If there are more lines, prepare for next page
+      if (lineIdx < codeLines.length) {
         doc.addPage();
         yPos = 20;
       }
-
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`Iteration ${iter.iteration_number} (${iter.status})`, 20, yPos);
-      yPos += 8;
-
-      // Code block with better formatting
-      const codeSnippet = iter.code_snippet || '// No code generated';
-      const codeWidth = pageWidth - 40;
-      const codeLines = doc.splitTextToSize(codeSnippet, codeWidth);
-      
-      // Write code with monospace font
-      doc.setFont('courier', 'normal');
-      doc.setFontSize(7);
-      doc.setTextColor(0, 0, 0);
-      
-      const lineHeight = 4.5;
-      const padding = 3;
-      
-      let lineIdx = 0;
-      while (lineIdx < codeLines.length) {
-        // Calculate how many lines fit on current page
-        const remainingSpace = pageHeight - yPos - 15;
-        const linesForThisPage = Math.min(
-          Math.floor(remainingSpace / lineHeight),
-          codeLines.length - lineIdx
-        );
-        
-        if (linesForThisPage <= 0) {
-          doc.addPage();
-          yPos = 20;
-          continue;
-        }
-        
-        const blockStartY = yPos - padding;
-        const blockHeight = linesForThisPage * lineHeight + padding * 2;
-        
-        // Draw background and border first
-        doc.setFillColor(245, 245, 245);
-        doc.roundedRect(20, blockStartY, codeWidth, blockHeight, 2, 2, 'F');
-        doc.setDrawColor(200, 200, 200);
-        doc.roundedRect(20, blockStartY, codeWidth, blockHeight, 2, 2, 'S');
-        
-        // Then write the text
-        for (let i = 0; i < linesForThisPage; i++) {
-          doc.text(codeLines[lineIdx], 25, yPos);
-          yPos += lineHeight;
-          lineIdx++;
-        }
-        
-        // If there are more lines, prepare for next page
-        if (lineIdx < codeLines.length) {
-          doc.addPage();
-          yPos = 20;
-        }
-      }
-      
-      // Reset font and add spacing after code block
-      doc.setFont('helvetica', 'normal');
-      yPos += 10;
-    });
+    }
+    
+    // Reset font and add spacing after code block
+    doc.setFont('helvetica', 'normal');
+    yPos += 20;
   }
 
-  // Iteration Details - Ralph Loop Agent
-  if (ralphIterations.length > 0) {
+  // Final Code - Ralph Loop Agent
+  if (ralph.final_code_snippet) {
     if (yPos > pageHeight - 60) {
       doc.addPage();
       yPos = 20;
@@ -223,107 +160,68 @@ export function exportBattleToPDF(battle, task) {
 
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('Ralph Loop Agent - Iterations', 20, yPos);
+    doc.text('Ralph Loop Agent - Final Code', 20, yPos);
     yPos += 10;
 
-    const ralphTableData = ralphIterations.map((iter, idx) => [
-      (idx + 1).toString(),
-      iter.status || 'unknown',
-      iter.tokens_used?.toString() || '0',
-      `${((iter.time_taken_ms || 0) / 1000).toFixed(1)}s`,
-      (iter.context_size || 0).toLocaleString(),
-    ]);
-
-    autoTable(doc, {
-      startY: yPos,
-      head: [['#', 'Status', 'Tokens', 'Time', 'Context Size']],
-      body: ralphTableData,
-      theme: 'striped',
-      headStyles: { fillColor: [34, 197, 94], textColor: 255, fontStyle: 'bold' },
-      styles: { fontSize: 8 },
-      margin: { left: 20, right: 20 },
-    });
-
-    yPos = doc.lastAutoTable.finalY + 20;
-
-    // Code snippets for Ralph Loop Agent (first 3 iterations)
-    if (yPos > pageHeight - 60) {
-      doc.addPage();
-      yPos = 20;
-    }
-
-    doc.setFontSize(12);
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text('Ralph Loop Agent - Code Snippets', 20, yPos);
-    yPos += 12;
+    doc.text(`Status: ${ralph.final_status || 'pending'}`, 20, yPos);
+    yPos += 8;
 
-    ralphIterations.slice(0, 3).forEach((iter, idx) => {
-      // Check if we need a new page before starting iteration
-      if (yPos > pageHeight - 80) {
+    // Code block with better formatting
+    const codeSnippet = ralph.final_code_snippet || '// No code generated';
+    const codeWidth = pageWidth - 40;
+    const codeLines = doc.splitTextToSize(codeSnippet, codeWidth);
+    
+    // Write code with monospace font
+    doc.setFont('courier', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(0, 0, 0);
+    
+    const lineHeight = 4.5;
+    const padding = 3;
+    
+    let lineIdx = 0;
+    while (lineIdx < codeLines.length) {
+      // Calculate how many lines fit on current page
+      const remainingSpace = pageHeight - yPos - 15;
+      const linesForThisPage = Math.min(
+        Math.floor(remainingSpace / lineHeight),
+        codeLines.length - lineIdx
+      );
+      
+      if (linesForThisPage <= 0) {
+        doc.addPage();
+        yPos = 20;
+        continue;
+      }
+      
+      const blockStartY = yPos - padding;
+      const blockHeight = linesForThisPage * lineHeight + padding * 2;
+      
+      // Draw background and border first
+      doc.setFillColor(245, 245, 245);
+      doc.roundedRect(20, blockStartY, codeWidth, blockHeight, 2, 2, 'F');
+      doc.setDrawColor(200, 200, 200);
+      doc.roundedRect(20, blockStartY, codeWidth, blockHeight, 2, 2, 'S');
+      
+      // Then write the text
+      for (let i = 0; i < linesForThisPage; i++) {
+        doc.text(codeLines[lineIdx], 25, yPos);
+        yPos += lineHeight;
+        lineIdx++;
+      }
+      
+      // If there are more lines, prepare for next page
+      if (lineIdx < codeLines.length) {
         doc.addPage();
         yPos = 20;
       }
-
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`Iteration ${iter.iteration_number} (${iter.status})`, 20, yPos);
-      yPos += 8;
-
-      // Code block with better formatting
-      const codeSnippet = iter.code_snippet || '// No code generated';
-      const codeWidth = pageWidth - 40;
-      const codeLines = doc.splitTextToSize(codeSnippet, codeWidth);
-      
-      // Write code with monospace font
-      doc.setFont('courier', 'normal');
-      doc.setFontSize(7);
-      doc.setTextColor(0, 0, 0);
-      
-      const lineHeight = 4.5;
-      const padding = 3;
-      
-      let lineIdx = 0;
-      while (lineIdx < codeLines.length) {
-        // Calculate how many lines fit on current page
-        const remainingSpace = pageHeight - yPos - 15;
-        const linesForThisPage = Math.min(
-          Math.floor(remainingSpace / lineHeight),
-          codeLines.length - lineIdx
-        );
-        
-        if (linesForThisPage <= 0) {
-          doc.addPage();
-          yPos = 20;
-          continue;
-        }
-        
-        const blockStartY = yPos - padding;
-        const blockHeight = linesForThisPage * lineHeight + padding * 2;
-        
-        // Draw background and border first
-        doc.setFillColor(245, 245, 245);
-        doc.roundedRect(20, blockStartY, codeWidth, blockHeight, 2, 2, 'F');
-        doc.setDrawColor(200, 200, 200);
-        doc.roundedRect(20, blockStartY, codeWidth, blockHeight, 2, 2, 'S');
-        
-        // Then write the text
-        for (let i = 0; i < linesForThisPage; i++) {
-          doc.text(codeLines[lineIdx], 25, yPos);
-          yPos += lineHeight;
-          lineIdx++;
-        }
-        
-        // If there are more lines, prepare for next page
-        if (lineIdx < codeLines.length) {
-          doc.addPage();
-          yPos = 20;
-        }
-      }
-      
-      // Reset font and add spacing after code block
-      doc.setFont('helvetica', 'normal');
-      yPos += 10;
-    });
+    }
+    
+    // Reset font and add spacing after code block
+    doc.setFont('helvetica', 'normal');
+    yPos += 10;
   }
 
   // Footer

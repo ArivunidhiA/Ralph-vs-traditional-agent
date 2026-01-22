@@ -272,6 +272,30 @@ export const useArenaStore = create((set, get) => ({
             streamingContentBuffer += data.content;
             // Update streaming content for this specific agent
             get().appendStreamingContent(agentType, data.content);
+          } else if (data.type === 'attempt_complete') {
+            // Update battle state but continue streaming (retry loop)
+            const currentState = get();
+            const latestBattle = currentState.battle;
+            
+            if (latestBattle && latestBattle.id === battle.id) {
+              set((state) => {
+                if (!state.battle || state.battle.id !== battle.id) {
+                  return state;
+                }
+                
+                const updatedBattle = { ...state.battle };
+                const agentKey = `${agentType}_agent`;
+                updatedBattle[agentKey] = data.agent_state;
+                updatedBattle.status = data.battle_status;
+
+                return { battle: updatedBattle };
+              });
+            }
+            // Clear streaming content for next attempt
+            set((state) => ({
+              streamingAgents: { ...state.streamingAgents, [agentType]: '' }
+            }));
+            streamingContentBuffer = '';
           } else if (data.type === 'complete') {
             isComplete = true;
             
@@ -387,27 +411,15 @@ export const useArenaStore = create((set, get) => ({
 
     return {
       traditional: {
-        iterations: traditional.iterations.length,
-        successRate: traditional.iterations.length > 0 
-          ? ((traditional.success_count / traditional.iterations.length) * 100).toFixed(1)
-          : 0,
-        totalTokens: traditional.total_tokens,
+        totalTokens: traditional.total_tokens || 0,
         totalTimeMs: traditional.total_time_ms || 0,
-        contextSizes: traditional.iterations.map(i => i.context_size),
-        tokensPerIteration: traditional.iterations.map(i => i.tokens_used),
-        timePerIteration: traditional.iterations.map(i => i.time_taken_ms || 0),
+        finalStatus: traditional.final_status || '',
         status: traditional.status
       },
       ralph: {
-        iterations: ralph.iterations.length,
-        successRate: ralph.iterations.length > 0 
-          ? ((ralph.success_count / ralph.iterations.length) * 100).toFixed(1)
-          : 0,
-        totalTokens: ralph.total_tokens,
+        totalTokens: ralph.total_tokens || 0,
         totalTimeMs: ralph.total_time_ms || 0,
-        contextSizes: ralph.iterations.map(i => i.context_size),
-        tokensPerIteration: ralph.iterations.map(i => i.tokens_used),
-        timePerIteration: ralph.iterations.map(i => i.time_taken_ms || 0),
+        finalStatus: ralph.final_status || '',
         status: ralph.status
       }
     };

@@ -1,9 +1,7 @@
-import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, Sparkles, CheckCircle2, XCircle, AlertCircle, Loader2, Clock } from 'lucide-react';
+import { Bot, Sparkles, CheckCircle2, XCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
-import { ScrollArea } from './ui/scroll-area';
 import { useArenaStore } from '../store/arenaStore';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -52,14 +50,15 @@ const detectLanguage = (code) => {
 export function AgentPanel({ agent, type }) {
   const { streamingAgents, theme } = useArenaStore();
   const isTraditional = type === 'traditional';
-  const iterations = agent?.iterations || [];
-  const contextSize = agent?.current_context_size || 0;
+  const contextSize = agent?.final_context_size || 0;
   // Use the same max context for both agents to make progress bars comparable
   // Traditional accumulates context, Ralph uses fresh context, but we want visual consistency
   const maxContext = 50000; // Same max for both to show accurate relative usage
   const contextPercent = Math.min((contextSize / maxContext) * 100, 100);
   const isStreaming = streamingAgents && streamingAgents[type] !== undefined;
   const streamingContent = streamingAgents?.[type] || '';
+  const finalCode = agent?.final_code_snippet || '';
+  const finalStatus = agent?.final_status || '';
 
   return (
     <div 
@@ -147,7 +146,7 @@ export function AgentPanel({ agent, type }) {
         )}
       </div>
 
-      {/* Iterations List - Scrollable list, but each card has its own code scrollbar */}
+      {/* Final Code Display */}
       <div className="flex-1 overflow-hidden flex flex-col min-h-0">
         {isStreaming && streamingContent ? (
           // Streaming Preview - Fills entire space with green neon border
@@ -201,208 +200,100 @@ export function AgentPanel({ agent, type }) {
               </div>
             </div>
           </div>
-        ) : (
-          <div className={cn("w-full max-w-full flex-1", iterations.length === 1 ? "flex flex-col min-h-0 overflow-hidden p-4" : "p-4 overflow-y-auto overflow-x-hidden")}>
-            <AnimatePresence mode="popLayout">
-              {iterations.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
-                  Waiting to start...
+        ) : finalCode ? (
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-4">
+            <div className="flex-1 flex flex-col min-h-0 border-2 border-green-500/30 rounded-lg bg-card p-4">
+              {/* Header */}
+              <div className="px-0 py-2 flex items-center justify-between gap-2 min-w-0 flex-shrink-0">
+                <div className="flex items-center gap-2 min-w-0 shrink">
+                  <span className="text-sm font-semibold whitespace-nowrap">
+                    Final Code
+                  </span>
+                  {finalStatus && (() => {
+                    const StatusIcon = statusIcons[finalStatus] || AlertCircle;
+                    return (
+                      <StatusIcon className={cn(
+                        "w-4 h-4 flex-shrink-0",
+                        statusColors[finalStatus]
+                      )} />
+                    );
+                  })()}
                 </div>
-              ) : (
-                <div className={cn("w-full max-w-full", iterations.length === 1 ? "flex-1 flex flex-col min-h-0" : "space-y-3")}>
-              {[...iterations].reverse().map((iteration, idx) => {
-                const StatusIcon = statusIcons[iteration.status] || AlertCircle;
-                
-                return (
-                  <motion.div
-                    key={iteration.iteration_number}
-                    initial={{ opacity: 0, y: -20, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.3 }}
-                    data-testid={`iteration-card-${type}-${iteration.iteration_number}`}
+              </div>
+
+              {/* Code Snippet - Takes remaining space, scrollable inside */}
+              <div className="flex-1 overflow-hidden min-h-0 mb-3">
+                <div className="bg-muted/50 rounded-md p-3 h-full overflow-y-auto overflow-x-hidden w-full max-w-full">
+                  <div className="w-full max-w-full min-w-0">
+                    <SyntaxHighlighter
+                      language={detectLanguage(finalCode)}
+                      style={theme === 'dark' ? vscDarkPlus : vs}
+                      customStyle={{
+                        margin: 0,
+                        padding: 0,
+                        background: 'transparent',
+                        fontSize: '10px',
+                        lineHeight: '1.4',
+                        fontFamily: 'JetBrains Mono, monospace',
+                        wordBreak: 'break-all',
+                        overflowWrap: 'break-word',
+                        whiteSpace: 'pre-wrap',
+                        width: '100%',
+                        maxWidth: '100%',
+                        overflow: 'visible',
+                        display: 'block'
+                      }}
+                      PreTag="div"
+                      showLineNumbers={false}
+                      wrapLines={true}
+                      wrapLongLines={true}
+                    >
+                      {finalCode || '// No code generated'}
+                    </SyntaxHighlighter>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer - Fixed at bottom, never moves */}
+              <div className="flex items-center justify-between text-xs text-muted-foreground gap-2 min-w-0 flex-shrink-0 border-t border-border/30 pt-3 pb-0">
+                <span className="truncate">Context: {contextSize.toLocaleString()} chars</span>
+                {finalStatus && (
+                  <Badge 
+                    variant="outline" 
                     className={cn(
-                      "w-full min-w-0 max-w-full",
-                      iterations.length === 1 && "flex-1 flex flex-col min-h-0"
+                      "text-xs flex-shrink-0",
+                      finalStatus === 'success' && "bg-green-500/10 text-green-500 border-green-500/20",
+                      finalStatus === 'failure' && "bg-red-500/10 text-red-500 border-red-500/20",
+                      finalStatus === 'partial' && "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
                     )}
                   >
-                    {iterations.length === 1 ? (
-                      <div className="flex-1 flex flex-col min-h-0 border-2 border-green-500/30 rounded-lg bg-card p-4">
-                        {/* Iteration Header - Match streaming header height exactly */}
-                        <div className="px-0 py-2 flex items-center justify-between gap-2 min-w-0 flex-shrink-0">
-                          <div className="flex items-center gap-2 min-w-0 shrink">
-                            <span className="text-sm font-semibold whitespace-nowrap">
-                              Iteration {iteration.iteration_number}
-                            </span>
-                            <StatusIcon className={cn(
-                              "w-4 h-4 flex-shrink-0",
-                              statusColors[iteration.status]
-                            )} />
-                          </div>
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground flex-shrink-0">
-                            <span className="flex items-center gap-1 whitespace-nowrap">
-                              <Clock className="w-3 h-3" />
-                              {((iteration.time_taken_ms || 0) / 1000).toFixed(1)}s
-                            </span>
-                            <span className="font-mono whitespace-nowrap">
-                              {iteration.tokens_used} tokens
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Code Snippet - Takes remaining space, scrollable inside - Match streaming exactly */}
-                        <div className="flex-1 overflow-hidden min-h-0 mb-3">
-                          <div className="bg-muted/50 rounded-md p-3 h-full overflow-y-auto overflow-x-hidden w-full max-w-full">
-                            <div className="w-full max-w-full min-w-0">
-                              <SyntaxHighlighter
-                                language={detectLanguage(iteration.code_snippet)}
-                                style={theme === 'dark' ? vscDarkPlus : vs}
-                                customStyle={{
-                                  margin: 0,
-                                  padding: 0,
-                                  background: 'transparent',
-                                  fontSize: '10px',
-                                  lineHeight: '1.4',
-                                  fontFamily: 'JetBrains Mono, monospace',
-                                  wordBreak: 'break-all',
-                                  overflowWrap: 'break-word',
-                                  whiteSpace: 'pre-wrap',
-                                  width: '100%',
-                                  maxWidth: '100%',
-                                  overflow: 'visible',
-                                  display: 'block'
-                                }}
-                                PreTag="div"
-                                showLineNumbers={false}
-                                wrapLines={true}
-                                wrapLongLines={true}
-                              >
-                                {iteration.code_snippet || '// No code generated'}
-                              </SyntaxHighlighter>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Iteration Footer - Fixed at bottom, never moves - Match streaming exactly */}
-                        <div className="flex items-center justify-between text-xs text-muted-foreground gap-2 min-w-0 flex-shrink-0 border-t border-border/30 pt-3 pb-0">
-                          <span className="truncate">Context: {iteration.context_size.toLocaleString()} chars</span>
-                          <Badge 
-                            variant="outline" 
-                            className={cn(
-                              "text-xs flex-shrink-0",
-                              iteration.status === 'success' && "bg-green-500/10 text-green-500 border-green-500/20",
-                              iteration.status === 'failure' && "bg-red-500/10 text-red-500 border-red-500/20",
-                              iteration.status === 'partial' && "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
-                            )}
-                          >
-                            {iteration.status}
-                          </Badge>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col min-h-0 overflow-hidden p-4">
-                        <div className="flex flex-col min-h-0 border-2 border-green-500/30 rounded-lg bg-card p-4">
-                          {/* Iteration Header - Match streaming header height exactly */}
-                          <div className="px-0 py-2 flex items-center justify-between gap-2 min-w-0 flex-shrink-0">
-                            <div className="flex items-center gap-2 min-w-0 shrink">
-                              <span className="text-sm font-semibold whitespace-nowrap">
-                                Iteration {iteration.iteration_number}
-                              </span>
-                              <StatusIcon className={cn(
-                                "w-4 h-4 flex-shrink-0",
-                                statusColors[iteration.status]
-                              )} />
-                            </div>
-                            <div className="flex items-center gap-3 text-xs text-muted-foreground flex-shrink-0">
-                              <span className="flex items-center gap-1 whitespace-nowrap">
-                                <Clock className="w-3 h-3" />
-                                {((iteration.time_taken_ms || 0) / 1000).toFixed(1)}s
-                              </span>
-                              <span className="font-mono whitespace-nowrap">
-                                {iteration.tokens_used} tokens
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Code Snippet - Takes remaining space, scrollable inside - Match streaming exactly */}
-                          <div className="flex-1 overflow-hidden min-h-0 mb-3">
-                            <div className="bg-muted/50 rounded-md p-3 h-full overflow-y-auto overflow-x-hidden w-full max-w-full">
-                              <div className="w-full max-w-full min-w-0">
-                                <SyntaxHighlighter
-                                  language={detectLanguage(iteration.code_snippet)}
-                                  style={theme === 'dark' ? vscDarkPlus : vs}
-                                  customStyle={{
-                                    margin: 0,
-                                    padding: 0,
-                                    background: 'transparent',
-                                    fontSize: '10px',
-                                    lineHeight: '1.4',
-                                    fontFamily: 'JetBrains Mono, monospace',
-                                    wordBreak: 'break-all',
-                                    overflowWrap: 'break-word',
-                                    whiteSpace: 'pre-wrap',
-                                    width: '100%',
-                                    maxWidth: '100%',
-                                    overflow: 'visible',
-                                    display: 'block'
-                                  }}
-                                  PreTag="div"
-                                  showLineNumbers={false}
-                                  wrapLines={true}
-                                  wrapLongLines={true}
-                                >
-                                  {iteration.code_snippet || '// No code generated'}
-                                </SyntaxHighlighter>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Iteration Footer - Fixed at bottom, never moves - Match streaming exactly */}
-                          <div className="flex items-center justify-between text-xs text-muted-foreground gap-2 min-w-0 flex-shrink-0 border-t border-border/30 pt-3 pb-0">
-                            <span className="truncate">Context: {iteration.context_size.toLocaleString()} chars</span>
-                            <Badge 
-                              variant="outline" 
-                              className={cn(
-                                "text-xs flex-shrink-0",
-                                iteration.status === 'success' && "bg-green-500/10 text-green-500 border-green-500/20",
-                                iteration.status === 'failure' && "bg-red-500/10 text-red-500 border-red-500/20",
-                                iteration.status === 'partial' && "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
-                              )}
-                            >
-                              {iteration.status}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </motion.div>
-                );
-              })}
+                    {finalStatus}
+                  </Badge>
+                )}
               </div>
-            )}
-          </AnimatePresence>
-        </div>
+            </div>
+          </div>
+        ) : (
+          <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+            Waiting to start...
+          </div>
         )}
       </div>
 
       {/* Footer Stats */}
       <div className="p-4 border-t border-border/50 bg-muted/10">
-        <div className="grid grid-cols-4 gap-3 text-center">
-          <div>
-            <p className="text-lg font-bold">{iterations.length}</p>
-            <p className="text-xs text-muted-foreground">Iterations</p>
-          </div>
-          <div>
-            <p className="text-lg font-bold text-green-500">{agent?.success_count || 0}</p>
-            <p className="text-xs text-muted-foreground">Successes</p>
-          </div>
+        <div className="grid grid-cols-3 gap-3 text-center">
           <div>
             <p className="text-lg font-bold">{(agent?.total_tokens || 0).toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground">Tokens</p>
+            <p className="text-xs text-muted-foreground">Total Tokens</p>
           </div>
           <div>
             <p className="text-lg font-bold">{((agent?.total_time_ms || 0) / 1000).toFixed(1)}s</p>
-            <p className="text-xs text-muted-foreground">Time</p>
+            <p className="text-xs text-muted-foreground">Total Time</p>
+          </div>
+          <div>
+            <p className="text-lg font-bold">{finalStatus ? finalStatus : 'pending'}</p>
+            <p className="text-xs text-muted-foreground">Status</p>
           </div>
         </div>
       </div>
