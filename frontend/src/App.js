@@ -59,9 +59,9 @@ function App() {
     <div className="min-h-screen relative" data-testid="app-container" style={{ background: 'transparent' }}>
       {/* Ethereal Shadow Background - Dark Moving Shadows */}
       <EtherealShadow
-        color="rgba(30, 30, 50, 0.9)"
+        color="rgba(30, 30, 30, 1)"
         animation={{ scale: 100, speed: 90 }}
-        noise={{ opacity: 0.05, scale: 1.2 }}
+        noise={{ opacity: 1, scale: 1.2 }}
         sizing="fill"
       />
       

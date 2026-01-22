@@ -1,12 +1,5 @@
-import { Play, Pause, RotateCcw, Gauge, Download } from 'lucide-react';
+import { Play, Pause, RotateCcw, Download } from 'lucide-react';
 import { Button } from './ui/button';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from './ui/select';
 import { 
   Tooltip, 
   TooltipContent, 
@@ -24,8 +17,6 @@ export function ControlPanel() {
     isPaused, 
     battle,
     selectedTask,
-    speed, 
-    setSpeed,
     startBattle,
     pauseBattle,
     resumeBattle,
@@ -126,38 +117,6 @@ export function ControlPanel() {
           </TooltipTrigger>
           <TooltipContent>Reset Battle</TooltipContent>
         </Tooltip>
-
-        {/* Divider */}
-        <div className="w-px h-8 bg-border" />
-
-        {/* Speed Control */}
-        <div className="flex items-center gap-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center gap-2">
-                <Gauge className="h-4 w-4 text-muted-foreground" />
-                <Select 
-                  value={speed} 
-                  onValueChange={setSpeed}
-                  disabled={isRunning && !isPaused}
-                >
-                  <SelectTrigger 
-                    className="w-24 h-9"
-                    data-testid="speed-select"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="slow">Slow</SelectItem>
-                    <SelectItem value="normal">Normal</SelectItem>
-                    <SelectItem value="fast">Fast</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>Animation Speed</TooltipContent>
-          </Tooltip>
-        </div>
 
         {/* Export Button */}
         {canExport && (

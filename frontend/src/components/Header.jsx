@@ -12,7 +12,7 @@ export function Header() {
   return (
     <header 
       data-testid="header"
-      className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60"
+      className="sticky top-0 z-50 w-full border-b border-border/40 backdrop-blur-xl"
     >
       <div className="max-w-[1600px] mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
         {/* Logo */}

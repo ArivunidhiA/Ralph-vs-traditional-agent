@@ -26,7 +26,7 @@ const useInstanceId = () => {
 
 export function EtherealShadow({
     sizing = 'fill',
-    color = 'rgba(0, 0, 0, 1)',
+    color = 'rgba(128, 128, 128, 1)',
     animation,
     noise,
     style,
@@ -93,7 +93,7 @@ export function EtherealShadow({
                 }}
             >
                 {animationEnabled && (
-                    <svg style={{ position: "absolute", width: 0, height: 0 }}>
+                    <svg style={{ position: "absolute" }}>
                         <defs>
                             <filter id={id}>
                                 <feTurbulence
@@ -110,7 +110,7 @@ export function EtherealShadow({
                                     values="180"
                                 />
                                 <feColorMatrix
-                                    in="undulation"
+                                    in="dist"
                                     result="circulation"
                                     type="matrix"
                                     values="4 0 0 0 1  4 0 0 0 1  4 0 0 0 1  1 0 0 0 0"
@@ -152,8 +152,7 @@ export function EtherealShadow({
                         backgroundImage: `url("https://framerusercontent.com/images/g0QcWrxr87K0ufOxIUFBakwYA8.png")`,
                         backgroundSize: noise.scale * 200,
                         backgroundRepeat: "repeat",
-                        opacity: noise.opacity / 4,
-                        mixBlendMode: "overlay"
+                        opacity: noise.opacity / 2
                     }}
                 />
             )}

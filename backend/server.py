@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends, Response
 from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -14,6 +14,7 @@ import uuid
 from datetime import datetime, timezone
 import asyncio
 import anthropic
+from collections import defaultdict
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -78,6 +79,98 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# ============== RATE LIMITING ==============
+
+# Rate limiting configuration (configurable via environment variables)
+RATE_LIMIT_REQUESTS_PER_HOUR = int(os.environ.get('RATE_LIMIT_REQUESTS_PER_HOUR', '50'))
+RATE_LIMIT_ENABLED = os.environ.get('RATE_LIMIT_ENABLED', 'true').lower() == 'true'
+
+# In-memory storage for rate limiting: IP -> list of request timestamps
+rate_limit_store: Dict[str, List[float]] = defaultdict(list)
+
+def get_client_ip(request: Request) -> str:
+    """Extract client IP address from request"""
+    # Check for forwarded IP (when behind proxy/load balancer)
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        # X-Forwarded-For can contain multiple IPs, take the first one
+        return forwarded_for.split(",")[0].strip()
+    
+    real_ip = request.headers.get("X-Real-IP")
+    if real_ip:
+        return real_ip.strip()
+    
+    # Fallback to direct client IP
+    if request.client:
+        return request.client.host
+    
+    return "unknown"
+
+def check_rate_limit(ip: str) -> tuple[bool, int, int]:
+    """
+    Check if IP has exceeded rate limit
+    Returns: (is_allowed, remaining_requests, reset_time_seconds)
+    """
+    if not RATE_LIMIT_ENABLED:
+        return True, RATE_LIMIT_REQUESTS_PER_HOUR, 3600
+    
+    current_time = time.time()
+    hour_ago = current_time - 3600  # 1 hour in seconds
+    
+    # Clean up old entries (older than 1 hour)
+    if ip in rate_limit_store:
+        rate_limit_store[ip] = [
+            timestamp for timestamp in rate_limit_store[ip]
+            if timestamp > hour_ago
+        ]
+    
+    # Count requests in the last hour
+    request_count = len(rate_limit_store[ip])
+    
+    if request_count >= RATE_LIMIT_REQUESTS_PER_HOUR:
+        # Calculate when the oldest request will expire
+        if rate_limit_store[ip]:
+            oldest_request = min(rate_limit_store[ip])
+            reset_time = int(3600 - (current_time - oldest_request))
+        else:
+            reset_time = 3600
+        return False, 0, reset_time
+    
+    # Add current request timestamp
+    rate_limit_store[ip].append(current_time)
+    remaining = RATE_LIMIT_REQUESTS_PER_HOUR - request_count - 1
+    return True, remaining, 3600
+
+async def rate_limit_dependency(request: Request):
+    """Dependency to check rate limit for AI endpoints"""
+    ip = get_client_ip(request)
+    is_allowed, remaining, reset_time = check_rate_limit(ip)
+    
+    if not is_allowed:
+        logger.warning(f"Rate limit exceeded for IP: {ip} (limit: {RATE_LIMIT_REQUESTS_PER_HOUR}/hour)")
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit exceeded. Maximum {RATE_LIMIT_REQUESTS_PER_HOUR} requests per hour. Please try again in {reset_time} seconds.",
+            headers={
+                "X-RateLimit-Limit": str(RATE_LIMIT_REQUESTS_PER_HOUR),
+                "X-RateLimit-Remaining": "0",
+                "X-RateLimit-Reset": str(int(time.time()) + reset_time),
+                "Retry-After": str(reset_time)
+            }
+        )
+    
+    # Log rate limit usage for monitoring
+    if remaining < 3:
+        logger.info(f"Rate limit warning for IP: {ip} - {remaining} requests remaining")
+    
+    # Add rate limit headers to successful responses
+    # Note: For streaming responses, headers are set in the response object
+    return {
+        "X-RateLimit-Limit": RATE_LIMIT_REQUESTS_PER_HOUR,
+        "X-RateLimit-Remaining": remaining,
+        "X-RateLimit-Reset": int(time.time()) + reset_time
+    }
 
 # ============== MODELS ==============
 
@@ -426,7 +519,12 @@ async def get_battle(battle_id: str):
     return battle
 
 @api_router.get("/battles/{battle_id}/iterate/{agent_type}/stream")
-async def iterate_agent_stream(battle_id: str, agent_type: str):
+async def iterate_agent_stream(
+    battle_id: str, 
+    agent_type: str,
+    request: Request,
+    rate_limit_info: dict = Depends(rate_limit_dependency)
+):
     """Stream iteration response using SSE"""
     if battle_id not in active_battles:
         raise HTTPException(status_code=404, detail="Battle not found")
@@ -620,18 +718,30 @@ Notes: {"Task completed successfully" if status == "success" else "Continue impr
                 except asyncio.CancelledError:
                     pass
     
+    # Add rate limit headers to streaming response
+    headers = {
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no",
+        "X-RateLimit-Limit": str(rate_limit_info.get("X-RateLimit-Limit", RATE_LIMIT_REQUESTS_PER_HOUR)),
+        "X-RateLimit-Remaining": str(rate_limit_info.get("X-RateLimit-Remaining", 0)),
+        "X-RateLimit-Reset": str(rate_limit_info.get("X-RateLimit-Reset", int(time.time()) + 3600))
+    }
+    
     return StreamingResponse(
         generate_stream(),
         media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no"
-        }
+        headers=headers
     )
 
 @api_router.post("/battles/{battle_id}/iterate/{agent_type}")
-async def iterate_agent(battle_id: str, agent_type: str):
+async def iterate_agent(
+    battle_id: str, 
+    agent_type: str,
+    request: Request,
+    response: Response,
+    rate_limit_info: dict = Depends(rate_limit_dependency)
+):
     """Run one iteration for an agent (non-streaming)"""
     if battle_id not in active_battles:
         raise HTTPException(status_code=404, detail="Battle not found")
@@ -773,6 +883,11 @@ Notes: {"Task completed successfully" if status == "success" else "Continue impr
             battle.get("winner"),
             battle_id
         )
+    
+    # Add rate limit headers to response
+    response.headers["X-RateLimit-Limit"] = str(rate_limit_info.get("X-RateLimit-Limit", RATE_LIMIT_REQUESTS_PER_HOUR))
+    response.headers["X-RateLimit-Remaining"] = str(rate_limit_info.get("X-RateLimit-Remaining", 0))
+    response.headers["X-RateLimit-Reset"] = str(rate_limit_info.get("X-RateLimit-Reset", int(time.time()) + 3600))
     
     return {
         "iteration": iteration.model_dump(),

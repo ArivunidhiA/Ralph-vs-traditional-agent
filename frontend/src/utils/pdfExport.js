@@ -23,22 +23,22 @@ export function exportBattleToPDF(battle, task) {
   doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
   doc.text('Ralph Loop Arena - Battle Report', pageWidth / 2, yPos, { align: 'center' });
-  yPos += 10;
+  yPos += 15;
 
   // Battle Metadata
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
   const taskName = task ? task.title : (taskNames[battle.task_id] || battle.task_id);
   doc.text(`Task: ${taskName}`, 20, yPos);
-  yPos += 6;
+  yPos += 7;
   doc.text(`Battle ID: ${battle.id}`, 20, yPos);
-  yPos += 6;
+  yPos += 7;
   
   const battleDate = battle.created_at 
     ? new Date(battle.created_at).toLocaleString()
     : 'Unknown';
   doc.text(`Date: ${battleDate}`, 20, yPos);
-  yPos += 6;
+  yPos += 7;
   
   if (battle.winner) {
     doc.setFont('helvetica', 'bold');
@@ -48,11 +48,11 @@ export function exportBattleToPDF(battle, task) {
       yPos
     );
     doc.setFont('helvetica', 'normal');
-    yPos += 6;
+    yPos += 7;
   }
   
   doc.text(`Status: ${battle.status}`, 20, yPos);
-  yPos += 10;
+  yPos += 15;
 
   // Metrics Table
   const traditional = battle.traditional_agent || {};
@@ -100,14 +100,19 @@ export function exportBattleToPDF(battle, task) {
     margin: { left: 20, right: 20 },
   });
 
-  yPos = doc.lastAutoTable.finalY + 15;
+  yPos = doc.lastAutoTable.finalY + 20;
 
   // Iteration Details - Traditional Agent
   if (traditionalIterations.length > 0) {
+    if (yPos > pageHeight - 60) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text('Traditional Agent - Iterations', 20, yPos);
-    yPos += 8;
+    yPos += 10;
 
     const traditionalTableData = traditionalIterations.map((iter, idx) => [
       (idx + 1).toString(),
@@ -127,7 +132,7 @@ export function exportBattleToPDF(battle, task) {
       margin: { left: 20, right: 20 },
     });
 
-    yPos = doc.lastAutoTable.finalY + 15;
+    yPos = doc.lastAutoTable.finalY + 20;
 
     // Code snippets for Traditional Agent (first 3 iterations)
     if (yPos > pageHeight - 60) {
@@ -138,10 +143,11 @@ export function exportBattleToPDF(battle, task) {
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('Traditional Agent - Code Snippets', 20, yPos);
-    yPos += 8;
+    yPos += 12;
 
     traditionalIterations.slice(0, 3).forEach((iter, idx) => {
-      if (yPos > pageHeight - 40) {
+      // Check if we need a new page before starting iteration
+      if (yPos > pageHeight - 80) {
         doc.addPage();
         yPos = 20;
       }
@@ -149,14 +155,62 @@ export function exportBattleToPDF(battle, task) {
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
       doc.text(`Iteration ${iter.iteration_number} (${iter.status})`, 20, yPos);
-      yPos += 6;
+      yPos += 8;
 
-      doc.setFontSize(8);
+      // Code block with better formatting
+      const codeSnippet = iter.code_snippet || '// No code generated';
+      const codeWidth = pageWidth - 40;
+      const codeLines = doc.splitTextToSize(codeSnippet, codeWidth);
+      
+      // Write code with monospace font
+      doc.setFont('courier', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(0, 0, 0);
+      
+      const lineHeight = 4.5;
+      const padding = 3;
+      
+      let lineIdx = 0;
+      while (lineIdx < codeLines.length) {
+        // Calculate how many lines fit on current page
+        const remainingSpace = pageHeight - yPos - 15;
+        const linesForThisPage = Math.min(
+          Math.floor(remainingSpace / lineHeight),
+          codeLines.length - lineIdx
+        );
+        
+        if (linesForThisPage <= 0) {
+          doc.addPage();
+          yPos = 20;
+          continue;
+        }
+        
+        const blockStartY = yPos - padding;
+        const blockHeight = linesForThisPage * lineHeight + padding * 2;
+        
+        // Draw background and border first
+        doc.setFillColor(245, 245, 245);
+        doc.roundedRect(20, blockStartY, codeWidth, blockHeight, 2, 2, 'F');
+        doc.setDrawColor(200, 200, 200);
+        doc.roundedRect(20, blockStartY, codeWidth, blockHeight, 2, 2, 'S');
+        
+        // Then write the text
+        for (let i = 0; i < linesForThisPage; i++) {
+          doc.text(codeLines[lineIdx], 25, yPos);
+          yPos += lineHeight;
+          lineIdx++;
+        }
+        
+        // If there are more lines, prepare for next page
+        if (lineIdx < codeLines.length) {
+          doc.addPage();
+          yPos = 20;
+        }
+      }
+      
+      // Reset font and add spacing after code block
       doc.setFont('helvetica', 'normal');
-      const codeSnippet = (iter.code_snippet || '// No code generated').substring(0, 300);
-      const lines = doc.splitTextToSize(codeSnippet, pageWidth - 40);
-      doc.text(lines, 20, yPos);
-      yPos += lines.length * 4 + 5;
+      yPos += 10;
     });
   }
 
@@ -170,7 +224,7 @@ export function exportBattleToPDF(battle, task) {
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text('Ralph Loop Agent - Iterations', 20, yPos);
-    yPos += 8;
+    yPos += 10;
 
     const ralphTableData = ralphIterations.map((iter, idx) => [
       (idx + 1).toString(),
@@ -190,7 +244,7 @@ export function exportBattleToPDF(battle, task) {
       margin: { left: 20, right: 20 },
     });
 
-    yPos = doc.lastAutoTable.finalY + 15;
+    yPos = doc.lastAutoTable.finalY + 20;
 
     // Code snippets for Ralph Loop Agent (first 3 iterations)
     if (yPos > pageHeight - 60) {
@@ -201,10 +255,11 @@ export function exportBattleToPDF(battle, task) {
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('Ralph Loop Agent - Code Snippets', 20, yPos);
-    yPos += 8;
+    yPos += 12;
 
     ralphIterations.slice(0, 3).forEach((iter, idx) => {
-      if (yPos > pageHeight - 40) {
+      // Check if we need a new page before starting iteration
+      if (yPos > pageHeight - 80) {
         doc.addPage();
         yPos = 20;
       }
@@ -212,14 +267,62 @@ export function exportBattleToPDF(battle, task) {
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
       doc.text(`Iteration ${iter.iteration_number} (${iter.status})`, 20, yPos);
-      yPos += 6;
+      yPos += 8;
 
-      doc.setFontSize(8);
+      // Code block with better formatting
+      const codeSnippet = iter.code_snippet || '// No code generated';
+      const codeWidth = pageWidth - 40;
+      const codeLines = doc.splitTextToSize(codeSnippet, codeWidth);
+      
+      // Write code with monospace font
+      doc.setFont('courier', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(0, 0, 0);
+      
+      const lineHeight = 4.5;
+      const padding = 3;
+      
+      let lineIdx = 0;
+      while (lineIdx < codeLines.length) {
+        // Calculate how many lines fit on current page
+        const remainingSpace = pageHeight - yPos - 15;
+        const linesForThisPage = Math.min(
+          Math.floor(remainingSpace / lineHeight),
+          codeLines.length - lineIdx
+        );
+        
+        if (linesForThisPage <= 0) {
+          doc.addPage();
+          yPos = 20;
+          continue;
+        }
+        
+        const blockStartY = yPos - padding;
+        const blockHeight = linesForThisPage * lineHeight + padding * 2;
+        
+        // Draw background and border first
+        doc.setFillColor(245, 245, 245);
+        doc.roundedRect(20, blockStartY, codeWidth, blockHeight, 2, 2, 'F');
+        doc.setDrawColor(200, 200, 200);
+        doc.roundedRect(20, blockStartY, codeWidth, blockHeight, 2, 2, 'S');
+        
+        // Then write the text
+        for (let i = 0; i < linesForThisPage; i++) {
+          doc.text(codeLines[lineIdx], 25, yPos);
+          yPos += lineHeight;
+          lineIdx++;
+        }
+        
+        // If there are more lines, prepare for next page
+        if (lineIdx < codeLines.length) {
+          doc.addPage();
+          yPos = 20;
+        }
+      }
+      
+      // Reset font and add spacing after code block
       doc.setFont('helvetica', 'normal');
-      const codeSnippet = (iter.code_snippet || '// No code generated').substring(0, 300);
-      const lines = doc.splitTextToSize(codeSnippet, pageWidth - 40);
-      doc.text(lines, 20, yPos);
-      yPos += lines.length * 4 + 5;
+      yPos += 10;
     });
   }
 

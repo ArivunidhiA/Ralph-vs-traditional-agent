@@ -183,17 +183,28 @@
     @apply m-0;
 }
 
-/* Recharts legend spacing fix */
-.recharts-legend-wrapper {
-    padding-top: 20px !important;
-    padding-left: 20px !important;
+/* Recharts legend spacing fix - Updated */
+.recharts-wrapper .recharts-legend-wrapper {
+    padding-top: 30px !important;
+    padding-left: 70px !important;
 }
 
-.recharts-legend-item {
+.recharts-wrapper .recharts-legend-item {
     margin-right: 24px !important;
-    margin-left: 12px !important;
+    margin-left: 0px !important;
 }
 
-.recharts-legend-item-text {
+.recharts-wrapper .recharts-legend-item-text {
     margin-left: 8px !important;
+}
+
+/* Keep Ralph (first item) on the left with spacing */
+.recharts-wrapper .recharts-legend-wrapper .recharts-legend-item:first-child {
+    margin-left: 0px !important;
+    margin-right: 80px !important;
+}
+
+/* Move Traditional (second item) to the right */
+.recharts-wrapper .recharts-legend-wrapper .recharts-legend-item:nth-child(2) {
+    margin-left: 0px !important;
 }

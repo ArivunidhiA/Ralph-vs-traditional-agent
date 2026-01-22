@@ -187,6 +187,11 @@ export function MetricsDashboard() {
                   <p className="text-xs text-muted-foreground italic font-normal">Ralph</p>
                 </div>
               </div>
+              {metrics?.traditional.avgTime > metrics?.ralph.avgTime && (
+                <p className="text-xs text-green-500 mt-2">
+                  Ralph is {Math.round(((metrics.traditional.avgTime - metrics.ralph.avgTime) / metrics.traditional.avgTime) * 100)}% faster
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -232,7 +237,7 @@ export function MetricsDashboard() {
               <div className="h-[320px]">
                 {metrics?.contextData?.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={metrics.contextData} margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
+                    <AreaChart data={metrics.contextData} margin={{ top: 10, right: 10, bottom: 10, left: 50 }}>
                       <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                       <XAxis 
                         dataKey="iteration" 
@@ -244,7 +249,7 @@ export function MetricsDashboard() {
                         className="text-xs"
                         tick={{ fill: 'hsl(var(--muted-foreground))' }}
                         tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
-                        label={{ value: 'Characters', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))' }}
+                        label={{ value: 'Characters', angle: -90, position: 'insideLeft', offset: -10, fill: 'hsl(var(--muted-foreground))' }}
                       />
                       <Tooltip 
                         contentStyle={{
@@ -257,9 +262,9 @@ export function MetricsDashboard() {
                       />
                       <Legend 
                         wrapperStyle={{ 
-                          paddingTop: '20px',
+                          paddingTop: '30px',
                           paddingBottom: '10px',
-                          paddingLeft: '20px'
+                          paddingLeft: '70px'
                         }}
                         iconType="line"
                         verticalAlign="bottom"
@@ -267,17 +272,17 @@ export function MetricsDashboard() {
                       />
                       <Area 
                         type="monotone" 
-                        dataKey="Traditional" 
-                        stroke="#3b82f6" 
-                        fill="#3b82f6"
+                        dataKey="Ralph" 
+                        stroke="#22c55e" 
+                        fill="#22c55e"
                         fillOpacity={0.2}
                         strokeWidth={2}
                       />
                       <Area 
                         type="monotone" 
-                        dataKey="Ralph" 
-                        stroke="#22c55e" 
-                        fill="#22c55e"
+                        dataKey="Traditional" 
+                        stroke="#3b82f6" 
+                        fill="#3b82f6"
                         fillOpacity={0.2}
                         strokeWidth={2}
                       />
@@ -304,7 +309,7 @@ export function MetricsDashboard() {
               <div className="h-[320px]">
                 {metrics?.tokensData?.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={metrics.tokensData} margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
+                    <LineChart data={metrics.tokensData} margin={{ top: 10, right: 10, bottom: 10, left: 50 }}>
                       <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                       <XAxis 
                         dataKey="iteration" 
@@ -316,7 +321,7 @@ export function MetricsDashboard() {
                         className="text-xs"
                         tick={{ fill: 'hsl(var(--muted-foreground))' }}
                         tickFormatter={(value) => value.toLocaleString()}
-                        label={{ value: 'Tokens', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))' }}
+                        label={{ value: 'Tokens', angle: -90, position: 'insideLeft', offset: -10, fill: 'hsl(var(--muted-foreground))' }}
                       />
                       <Tooltip 
                         contentStyle={{
@@ -329,9 +334,9 @@ export function MetricsDashboard() {
                       />
                       <Legend 
                         wrapperStyle={{ 
-                          paddingTop: '20px',
+                          paddingTop: '30px',
                           paddingBottom: '10px',
-                          paddingLeft: '20px'
+                          paddingLeft: '70px'
                         }}
                         iconType="line"
                         verticalAlign="bottom"
@@ -339,18 +344,18 @@ export function MetricsDashboard() {
                       />
                       <Line 
                         type="monotone" 
-                        dataKey="Traditional" 
-                        stroke="#3b82f6" 
-                        strokeWidth={3}
-                        dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-                        activeDot={{ r: 6 }}
-                      />
-                      <Line 
-                        type="monotone" 
                         dataKey="Ralph" 
                         stroke="#22c55e" 
                         strokeWidth={3}
                         dot={{ fill: '#22c55e', strokeWidth: 2, r: 4 }}
+                        activeDot={{ r: 6 }}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="Traditional" 
+                        stroke="#3b82f6" 
+                        strokeWidth={3}
+                        dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
                         activeDot={{ r: 6 }}
                       />
                     </LineChart>
