@@ -193,25 +193,6 @@ Ralph Loop Arena is an interactive battle arena where two AI coding agents compe
    
    Navigate to `http://localhost:3000`
 
-## 📁 Project Structure
-
-```
-Ralph-vs-traditional-agent/
-├── backend/
-│   ├── server.py           # FastAPI application
-│   ├── requirements.txt    # Python dependencies
-│   └── .env               # Environment variables
-├── frontend/
-│   ├── src/
-│   │   ├── components/    # React components
-│   │   ├── store/         # Zustand store
-│   │   ├── utils/         # Utilities (PDF export)
-│   │   └── App.js         # Main app component
-│   ├── package.json       # Node dependencies
-│   └── .env               # Frontend env vars
-└── README.md
-```
-
 ## 🔌 API Endpoints
 
 | Endpoint | Method | Description |
@@ -229,13 +210,8 @@ Ralph-vs-traditional-agent/
 
 ## 🔐 Environment Variables
 
-### Backend (`backend/.env`)
-- `DATABASE_URL` - Supabase PostgreSQL connection string
-- `ANTHROPIC_API_KEY` - Anthropic API key for Claude
-- `CORS_ORIGINS` - Allowed CORS origins (comma-separated)
-
-### Frontend (`frontend/.env`)
-- `REACT_APP_BACKEND_URL` - Backend API URL (default: `http://localhost:8000`)
+**Backend** (`backend/.env`): `DATABASE_URL`, `ANTHROPIC_API_KEY`, `CORS_ORIGINS`  
+**Frontend** (`frontend/.env`): `REACT_APP_BACKEND_URL`
 
 ## 🤝 Contributing
 
