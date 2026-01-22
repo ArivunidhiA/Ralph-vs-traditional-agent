@@ -25,6 +25,13 @@ const SUP_PASS = getCodeServerPassword();
 
 // Dev server setup function
 function setupDevServer(config) {
+  // Ensure historyApiFallback is enabled for React Router
+  config.historyApiFallback = {
+    disableDotRule: true,
+    htmlAcceptHeaders: ['text/html', 'application/xhtml+xml'],
+    index: '/index.html',
+  };
+
   config.setupMiddlewares = (middlewares, devServer) => {
     if (!devServer) throw new Error("webpack-dev-server not defined");
     devServer.app.use(express.json());
@@ -496,6 +503,25 @@ function setupDevServer(config) {
         res.sendStatus(200);
       } else {
         res.sendStatus(403);
+      }
+    });
+
+    // Catch-all handler for React Router - serve index.html for all routes
+    devServer.app.get('*', (req, res, next) => {
+      // Skip API routes, static files, and webpack dev server routes
+      if (req.path.startsWith('/api/') || 
+          req.path.startsWith('/static/') ||
+          req.path.startsWith('/sockjs-node/') ||
+          req.path.startsWith('/webpack') ||
+          req.path.includes('.')) {
+        return next();
+      }
+      // Serve index.html for all other routes (React Router)
+      const indexPath = path.join(__dirname, '../../public/index.html');
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        next();
       }
     });
 

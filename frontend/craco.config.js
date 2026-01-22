@@ -78,10 +78,17 @@ if (config.enableVisualEdits && babelMetadataPlugin) {
 }
 
 webpackConfig.devServer = (devServerConfig) => {
-  // Apply visual edits dev server setup only if enabled
+  // Apply visual edits dev server setup first if enabled
   if (config.enableVisualEdits && setupDevServer) {
     devServerConfig = setupDevServer(devServerConfig);
   }
+
+  // Enable history API fallback for React Router (must be after setupDevServer)
+  devServerConfig.historyApiFallback = {
+    disableDotRule: true,
+    htmlAcceptHeaders: ['text/html', 'application/xhtml+xml'],
+    index: '/index.html',
+  };
 
   // Add health check endpoints if enabled
   if (config.enableHealthCheck && setupHealthEndpoints && healthPluginInstance) {
