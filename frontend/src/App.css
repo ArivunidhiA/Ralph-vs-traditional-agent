@@ -47,3 +47,25 @@
   -moz-user-select: none;
   -ms-user-select: none;
 }
+
+/* Remove hover background overlay - make transparent */
+/* This targets the rectangular background that appears on hover */
+.recharts-tooltip-cursor {
+  fill: transparent !important;
+  stroke: none !important;
+  pointer-events: none !important;
+}
+
+/* Hide any overlay rectangles that appear on chart hover */
+.recharts-surface > rect[class*="cursor"],
+.recharts-surface > rect[fill-opacity] {
+  fill: transparent !important;
+  fill-opacity: 0 !important;
+  display: none !important;
+}
+
+/* Target any background rectangles in the chart area on hover */
+.recharts-cartesian-axis,
+.recharts-cartesian-grid {
+  pointer-events: none;
+}
