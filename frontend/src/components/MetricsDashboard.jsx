@@ -206,6 +206,10 @@ export function MetricsDashboard() {
                       iconType="rect"
                       verticalAlign="bottom"
                       align="center"
+                      payload={[
+                        { value: 'Traditional', type: 'rect', id: 'Traditional', color: '#3b82f6' },
+                        { value: 'Ralph', type: 'rect', id: 'Ralph', color: '#22c55e' }
+                      ]}
                     />
                       <Bar 
                         dataKey="Traditional" 
@@ -270,6 +274,10 @@ export function MetricsDashboard() {
                       iconType="rect"
                       verticalAlign="bottom"
                       align="center"
+                      payload={[
+                        { value: 'Traditional', type: 'rect', id: 'Traditional', color: '#3b82f6' },
+                        { value: 'Ralph', type: 'rect', id: 'Ralph', color: '#22c55e' }
+                      ]}
                     />
                       <Bar 
                         dataKey="Traditional" 
@@ -335,6 +343,10 @@ export function MetricsDashboard() {
                       iconType="rect"
                       verticalAlign="bottom"
                       align="center"
+                      payload={[
+                        { value: 'Traditional', type: 'rect', id: 'Traditional', color: '#3b82f6' },
+                        { value: 'Ralph', type: 'rect', id: 'Ralph', color: '#22c55e' }
+                      ]}
                     />
                       <Bar 
                         dataKey="Traditional" 
