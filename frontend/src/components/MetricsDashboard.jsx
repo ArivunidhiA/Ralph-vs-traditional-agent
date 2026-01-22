@@ -45,14 +45,6 @@ export function MetricsDashboard() {
       }
     ];
 
-    const successData = [
-      {
-        name: 'Success',
-        Traditional: traditionalSuccess ? 100 : 0,
-        Ralph: ralphSuccess ? 100 : 0,
-      }
-    ];
-
     return {
       traditional: {
         totalTokens: traditional.total_tokens || 0,
@@ -71,7 +63,6 @@ export function MetricsDashboard() {
       tokensData,
       timeData,
       contextData,
-      successData,
     };
   }, [battle]);
 
@@ -168,7 +159,7 @@ export function MetricsDashboard() {
         </div>
 
         {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Total Tokens Comparison */}
           <Card data-testid="chart-total-tokens">
             <CardHeader>
@@ -216,16 +207,18 @@ export function MetricsDashboard() {
                       verticalAlign="bottom"
                       align="center"
                     />
-                    <Bar 
-                      dataKey="Ralph" 
-                      fill="#22c55e" 
-                      radius={[8, 8, 0, 0]}
-                    />
-                    <Bar 
-                      dataKey="Traditional" 
-                      fill="#3b82f6" 
-                      radius={[8, 8, 0, 0]}
-                    />
+                      <Bar 
+                        dataKey="Ralph" 
+                        fill="#22c55e" 
+                        radius={[8, 8, 0, 0]}
+                        barSize={30}
+                      />
+                      <Bar 
+                        dataKey="Traditional" 
+                        fill="#3b82f6" 
+                        radius={[8, 8, 0, 0]}
+                        barSize={30}
+                      />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -278,16 +271,18 @@ export function MetricsDashboard() {
                       verticalAlign="bottom"
                       align="center"
                     />
-                    <Bar 
-                      dataKey="Ralph" 
-                      fill="#22c55e" 
-                      radius={[8, 8, 0, 0]}
-                    />
-                    <Bar 
-                      dataKey="Traditional" 
-                      fill="#3b82f6" 
-                      radius={[8, 8, 0, 0]}
-                    />
+                      <Bar 
+                        dataKey="Ralph" 
+                        fill="#22c55e" 
+                        radius={[8, 8, 0, 0]}
+                        barSize={30}
+                      />
+                      <Bar 
+                        dataKey="Traditional" 
+                        fill="#3b82f6" 
+                        radius={[8, 8, 0, 0]}
+                        barSize={30}
+                      />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -341,78 +336,18 @@ export function MetricsDashboard() {
                       verticalAlign="bottom"
                       align="center"
                     />
-                    <Bar 
-                      dataKey="Ralph" 
-                      fill="#22c55e" 
-                      radius={[8, 8, 0, 0]}
-                    />
-                    <Bar 
-                      dataKey="Traditional" 
-                      fill="#3b82f6" 
-                      radius={[8, 8, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Success Rate Comparison */}
-          <Card data-testid="chart-success-rate">
-            <CardHeader>
-              <CardTitle className="text-lg">Success Rate Comparison</CardTitle>
-              <p className="text-sm text-muted-foreground italic font-normal">
-                Compare success rates between agents
-              </p>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[320px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart 
-                    data={metrics?.successData || [{ name: 'Success', Traditional: 0, Ralph: 0 }]} 
-                    margin={{ top: 10, right: 10, bottom: 10, left: 50 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                    <XAxis 
-                      dataKey="name" 
-                      className="text-xs"
-                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                    />
-                    <YAxis 
-                      className="text-xs"
-                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                      domain={[0, 100]}
-                      label={{ value: 'Success Rate (%)', angle: -90, position: 'insideLeft', offset: -10, fill: 'hsl(var(--muted-foreground))' }}
-                    />
-                    <Tooltip 
-                      contentStyle={{
-                        backgroundColor: 'hsl(var(--card))',
-                        borderColor: 'hsl(var(--border))',
-                        borderRadius: '8px',
-                      }}
-                      labelStyle={{ color: 'hsl(var(--foreground))' }}
-                      formatter={(value) => [`${value}%`, '']}
-                    />
-                    <Legend 
-                      wrapperStyle={{ 
-                        paddingTop: '30px',
-                        paddingBottom: '10px',
-                        paddingLeft: '70px'
-                      }}
-                      iconType="rect"
-                      verticalAlign="bottom"
-                      align="center"
-                    />
-                    <Bar 
-                      dataKey="Ralph" 
-                      fill="#22c55e" 
-                      radius={[8, 8, 0, 0]}
-                    />
-                    <Bar 
-                      dataKey="Traditional" 
-                      fill="#3b82f6" 
-                      radius={[8, 8, 0, 0]}
-                    />
+                      <Bar 
+                        dataKey="Ralph" 
+                        fill="#22c55e" 
+                        radius={[8, 8, 0, 0]}
+                        barSize={30}
+                      />
+                      <Bar 
+                        dataKey="Traditional" 
+                        fill="#3b82f6" 
+                        radius={[8, 8, 0, 0]}
+                        barSize={30}
+                      />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
