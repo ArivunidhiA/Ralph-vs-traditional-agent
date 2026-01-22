@@ -185,7 +185,7 @@ export function MetricsDashboard() {
                       className="text-xs"
                       tick={{ fill: 'hsl(var(--muted-foreground))' }}
                       tickFormatter={(value) => value.toLocaleString()}
-                      label={{ value: 'Tokens', angle: -90, position: 'insideLeft', offset: -10, fill: 'hsl(var(--muted-foreground))' }}
+                      label={{ value: 'Tokens', angle: -90, position: 'left', offset: 5, fill: 'hsl(var(--muted-foreground))', style: { textAnchor: 'middle' } }}
                       domain={[0, 'auto']}
                     />
                     <Tooltip 
@@ -249,7 +249,7 @@ export function MetricsDashboard() {
                     <YAxis 
                       className="text-xs"
                       tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                      label={{ value: 'Time (seconds)', angle: -90, position: 'insideLeft', offset: -10, fill: 'hsl(var(--muted-foreground))' }}
+                      label={{ value: 'Time (seconds)', angle: -90, position: 'left', offset: 5, fill: 'hsl(var(--muted-foreground))', style: { textAnchor: 'middle' } }}
                       domain={[0, 'auto']}
                     />
                     <Tooltip 
@@ -314,7 +314,7 @@ export function MetricsDashboard() {
                       className="text-xs"
                       tick={{ fill: 'hsl(var(--muted-foreground))' }}
                       tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
-                      label={{ value: 'Characters', angle: -90, position: 'insideLeft', offset: -10, fill: 'hsl(var(--muted-foreground))' }}
+                      label={{ value: 'Characters', angle: -90, position: 'left', offset: 5, fill: 'hsl(var(--muted-foreground))', style: { textAnchor: 'middle' } }}
                       domain={[0, 'auto']}
                     />
                     <Tooltip 
