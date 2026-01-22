@@ -198,13 +198,13 @@
     margin-left: 8px !important;
 }
 
-/* Keep Ralph (first item) on the left with spacing */
+/* Keep Traditional (first item) on the left with spacing */
 .recharts-wrapper .recharts-legend-wrapper .recharts-legend-item:first-child {
     margin-left: 0px !important;
     margin-right: 80px !important;
 }
 
-/* Move Traditional (second item) to the right */
+/* Move Ralph (second item) to the right */
 .recharts-wrapper .recharts-legend-wrapper .recharts-legend-item:nth-child(2) {
     margin-left: 0px !important;
 }
