@@ -97,8 +97,13 @@ export function MetricsDashboard() {
                 </div>
               </div>
               {metrics?.traditional.totalTokens > metrics?.ralph.totalTokens && (
-                <p className="text-xs text-green-500 mt-2">
-                  Ralph uses {Math.round(((metrics.traditional.totalTokens - metrics.ralph.totalTokens) / metrics.traditional.totalTokens) * 100)}% fewer tokens
+                <p className="text-xs text-muted-foreground mt-2">
+                  Traditional used {Math.round(((metrics.traditional.totalTokens - metrics.ralph.totalTokens) / metrics.traditional.totalTokens) * 100)}% more tokens
+                </p>
+              )}
+              {metrics?.ralph.totalTokens > metrics?.traditional.totalTokens && metrics?.ralph.totalTokens > 0 && metrics?.traditional.totalTokens > 0 && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Ralph used {Math.round(((metrics.ralph.totalTokens - metrics.traditional.totalTokens) / metrics.traditional.totalTokens) * 100)}% more tokens. Ralph’s benefit is fresh context and avoiding context rot, not token savings.
                 </p>
               )}
             </CardContent>
@@ -126,8 +131,13 @@ export function MetricsDashboard() {
                 </div>
               </div>
               {metrics?.traditional.totalTime > metrics?.ralph.totalTime && (
-                <p className="text-xs text-green-500 mt-2">
-                  Ralph is {Math.round(((metrics.traditional.totalTime - metrics.ralph.totalTime) / metrics.traditional.totalTime) * 100)}% faster
+                <p className="text-xs text-muted-foreground mt-2">
+                  Traditional took {Math.round(((metrics.traditional.totalTime - metrics.ralph.totalTime) / metrics.traditional.totalTime) * 100)}% longer
+                </p>
+              )}
+              {metrics?.ralph.totalTime > metrics?.traditional.totalTime && metrics?.ralph.totalTime > 0 && metrics?.traditional.totalTime > 0 && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Ralph took {Math.round(((metrics.ralph.totalTime - metrics.traditional.totalTime) / metrics.traditional.totalTime) * 100)}% longer
                 </p>
               )}
             </CardContent>
@@ -157,6 +167,10 @@ export function MetricsDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        <p className="text-sm text-muted-foreground italic mb-4">
+          Ralph Loop’s benefit is fresh context each run to avoid context degradation; token and time comparison depends on the task.
+        </p>
 
         {/* Charts */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

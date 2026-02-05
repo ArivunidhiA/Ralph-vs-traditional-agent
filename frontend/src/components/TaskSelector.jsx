@@ -20,6 +20,18 @@ const difficultyColors = {
 export function TaskSelector() {
   const { tasks, selectedTask, selectTask } = useArenaStore();
 
+  if (!tasks || tasks.length === 0) {
+    return (
+      <section className="py-8" data-testid="task-selector">
+        <div className="max-w-[1600px] mx-auto px-4 md:px-8">
+          <p className="text-muted-foreground">No tasks available.</p>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+
   return (
     <section className="py-8" data-testid="task-selector">
       <div className="max-w-[1600px] mx-auto px-4 md:px-8">

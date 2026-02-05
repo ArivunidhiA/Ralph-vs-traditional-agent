@@ -23,7 +23,7 @@
 
 ## 🎯 Overview
 
-Ralph Loop Arena is an interactive battle arena where two AI coding agents compete on the same coding tasks. The application visually demonstrates why **fresh context** (Ralph Loop technique) outperforms **accumulating context** (Traditional approach) for complex coding challenges.
+Ralph Loop Arena is an interactive battle arena where two AI coding agents compete on the same coding tasks. It compares **accumulating context** (Traditional) with **fresh context each iteration** (Ralph Loop). Ralph’s benefit is avoiding context degradation over long runs; token and time comparison depends on the task.
 
 ### Key Highlights
 
@@ -52,7 +52,7 @@ Ralph Loop Arena is an interactive battle arena where two AI coding agents compe
 
 ### 📊 Analytics & Export
 - **Context Size Visualization**: Progress bars showing context accumulation
-- **Token Efficiency Metrics**: Compare token usage between agents
+- **Token comparison**: Compare token usage between agents
 - **Time Tracking**: Per-iteration and total time measurements
 - **PDF Reports**: Export comprehensive battle reports with code snippets
 

@@ -25,8 +25,9 @@ function HomePage() {
               </span>
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto italic font-normal">
-              Watch two AI coding agents battle side-by-side. See why fresh context 
-              beats accumulated context for complex coding tasks.
+              Watch two AI coding agents battle side-by-side. Compare accumulating 
+              context vs fresh context (Ralph Loop)—Ralph’s benefit is avoiding 
+              context degradation; token and time vary by task.
             </p>
           </div>
         </section>
