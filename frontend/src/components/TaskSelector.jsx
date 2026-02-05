@@ -31,8 +31,6 @@ export function TaskSelector() {
   }
 
   return (
-
-  return (
     <section className="py-8" data-testid="task-selector">
       <div className="max-w-[1600px] mx-auto px-4 md:px-8">
         <div className="flex items-center justify-between mb-6">
