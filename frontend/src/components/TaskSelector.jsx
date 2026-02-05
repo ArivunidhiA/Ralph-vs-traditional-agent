@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { Code, FileCode, Database, TestTube, Shield, Check } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useArenaStore } from '../store/arenaStore';
@@ -19,29 +18,7 @@ const difficultyColors = {
 };
 
 export function TaskSelector() {
-  const { tasks, selectedTask, fetchTasks, selectTask, loading } = useArenaStore();
-
-  useEffect(() => {
-    fetchTasks();
-  }, [fetchTasks]);
-
-  if (loading && tasks.length === 0) {
-    return (
-      <section className="py-8" data-testid="task-selector-loading">
-        <div className="max-w-[1600px] mx-auto px-4 md:px-8">
-          <h2 className="text-2xl font-bold mb-6">Select a Coding Task</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div 
-                key={i} 
-                className="h-48 rounded-xl border border-border/50 bg-card animate-pulse"
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
+  const { tasks, selectedTask, selectTask } = useArenaStore();
 
   return (
     <section className="py-8" data-testid="task-selector">

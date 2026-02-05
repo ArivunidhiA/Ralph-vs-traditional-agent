@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { TASKS } from '../data/tasks';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export const useArenaStore = create((set, get) => ({
-  // State
-  tasks: [],
+  // State - tasks from static list for instant load (backend still validates on battle create)
+  tasks: TASKS,
   selectedTask: null,
   battle: null,
   battles: [],
